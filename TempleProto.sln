@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TempleProto.CSharp.Plugins", "TempleProto.CSharp.Plugins.csproj", "{C657EB83-A056-8E95-E7B7-D5BB92F04747}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TempleProto.CSharp", "TempleProto.CSharp.csproj", "{D114454A-723B-DCEB-B165-2E3DE34F9675}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TempleProto.CSharp.Editor", "TempleProto.CSharp.Editor.csproj", "{2A38CFE2-818B-C496-C0A9-C4CF1893CDFE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C657EB83-A056-8E95-E7B7-D5BB92F04747}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C657EB83-A056-8E95-E7B7-D5BB92F04747}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C657EB83-A056-8E95-E7B7-D5BB92F04747}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C657EB83-A056-8E95-E7B7-D5BB92F04747}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D114454A-723B-DCEB-B165-2E3DE34F9675}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D114454A-723B-DCEB-B165-2E3DE34F9675}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D114454A-723B-DCEB-B165-2E3DE34F9675}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D114454A-723B-DCEB-B165-2E3DE34F9675}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A38CFE2-818B-C496-C0A9-C4CF1893CDFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A38CFE2-818B-C496-C0A9-C4CF1893CDFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A38CFE2-818B-C496-C0A9-C4CF1893CDFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A38CFE2-818B-C496-C0A9-C4CF1893CDFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
