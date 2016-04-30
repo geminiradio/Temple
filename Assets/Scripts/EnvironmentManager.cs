@@ -53,7 +53,7 @@ public class EnvironmentManager : MonoBehaviour {
 
     // all prefabs needed to build environment
     public GameObject alcovePrefab_short, alcovePrefab_tall;
-    public GameObject arrowTrapPrefab_short, arrowTrapPrefab_tall;
+    public GameObject arrowTrapPrefab_bottom, arrowTrapPrefab_middle, arrowTrapPrefab_top;
 
     void Start () {
 
@@ -128,6 +128,7 @@ public class EnvironmentManager : MonoBehaviour {
         SpawnBlock(blockType, GetWallAtDirection(wallDir), wallPos);
     }
 
+    // if goalPiece is non-null, the newly spawned block should attempt to include it 
     public void SpawnBlock (WallBlockType blockType, TempleWall wall, WallBlockPosition wallPos)
     {
         // fetch the GO prefab using the enum
@@ -238,17 +239,23 @@ public class EnvironmentManager : MonoBehaviour {
         switch (b)
         {
             case WallBlockType.Alcove:
-                if (wall.ShortBlocksFitHere(pos))
-                    return alcovePrefab_short;
-                else
+                if (wall.PositionIsMiddle(pos))
                     return alcovePrefab_tall;
+                else
+                    return alcovePrefab_short;
 
             case WallBlockType.ArrowTrap:
-                if (wall.ShortBlocksFitHere(pos))
-                    return arrowTrapPrefab_short;
+                if (wall.PositionIsTop(pos))
+                    return arrowTrapPrefab_top;
+                else if (wall.PositionIsMiddle(pos))
+                    return arrowTrapPrefab_middle;
+                else if (wall.PositionIsBottom(pos))
+                    return arrowTrapPrefab_bottom;
                 else
-                    return arrowTrapPrefab_tall;
-
+                {
+                    Debug.LogError("Invalid wall position, apparently.");
+                    return null;
+                }
 
         }
 

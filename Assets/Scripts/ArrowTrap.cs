@@ -13,6 +13,11 @@ public class ArrowTrap : Trap {
 
         SpawnArrow();
 
+        if (triggerSFX == null)
+            triggerSFX = GetComponent<RandomizeSFX>();
+        if (triggerSFX == null)
+            Debug.LogError("triggerSFX not assigned and no RandomizeSFX component detected.");
+
     }
 
     protected override bool Trigger ()

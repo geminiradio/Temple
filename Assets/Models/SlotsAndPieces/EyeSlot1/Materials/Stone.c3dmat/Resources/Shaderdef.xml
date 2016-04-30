@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<c3ddef version="1.0" name="Stone">
+    <material displayparam="IN" preview="1" type="SHADER" id="254631424" npos="638,72">
+        <param>
+            <seperator name="material" io="NONE"/>
+            <color name="diffColor" io="IN" val="0.700000,0.700000,0.700000,1.000000" conPara="color" conID="274647008" conState="YES"/>
+            <seperator name="Specular" io="NONE"/>
+            <color name="specColor" io="IN" val="1.000000,1.000000,1.000000,1.000000"/>
+            <float name="specSize" io="IN" val="100.000000" inc="1.0"/>
+            <seperator name="Reflection" io="NONE"/>
+            <color name="reflColor" io="IN" val="0.000000,0.000000,0.000000,1.000000"/>
+            <float name="reflBlur" io="IN" val="0.000000" min="0.0" max="1.0" inc="0.01"/>
+            <int name="reflSamples" io="NONE" val="16.000000" min="1"/>
+            <bool name="reflFresnel" io="NONE" val="0" min="0.0" max="1.0" inc="0.01"/>
+            <seperator name="Refraction" io="NONE"/>
+            <color name="transColor" io="IN" val="0.000000,0.000000,0.000000,1.000000"/>
+            <float name="transEta" io="IN" val="1.500000" min="1.0"/>
+            <float name="transBlur" io="IN" val="0.000000" min="0.0" max="1.0" inc="0.01"/>
+            <int name="transSamples" io="NONE" val="16.000000" min="1"/>
+            <bool name="transUseAlpha" io="NONE" val="0" min="0.0" max="1.0" inc="0.01"/>
+            <seperator name="Emissiv" io="NONE"/>
+            <color name="emisColor" io="IN" val="0.000000,0.000000,0.000000,1.000000"/>
+            <seperator name="Bumpmapping" io="NONE"/>
+            <select name="bumpType" io="NONE" val="0.000000" items="bumpHeight,bumpNormal"/>
+            <float name="bump" io="IN" val="0.000000"/>
+        </param>
+    </material>
+    <image displayparam="IN" preview="0" type="PATTERN" id="274647008" npos="478,184">
+        <param>
+            <seperator name="texture" io="NONE" val="/Users/geminiradio/Dev/rls/working/temple_working/Textures/SeamlessStoneTexture.jpg"/>
+            <texture name="texture" io="NONE" val="/Users/geminiradio/Dev/rls/working/temple_working/Textures/SeamlessStoneTexture.jpg"/>
+            <color name="mixcolor" io="IN" val="1.000000,1.000000,1.000000,1.000000"/>
+            <float name="mix" io="IN" val="1.000000" min="0.0" max="1.0" inc="0.01"/>
+            <color name="background" io="IN" val="0.700000,0.700000,0.700000,1.000000"/>
+            <float name="intensity" io="IN" val="1.000000" min="0.0" max="10.0" inc="0.01"/>
+            <seperator name="Sample" io="NONE"/>
+            <select name="sample" io="NONE" val="0.000000" items="UV1,UV2"/>
+            <vector2f name="position" io="IN" val="0.000000,0.000000"/>
+            <vector2f name="scale" io="IN" val="1.000000,1.000000" min="0.001" max="1000" inc="0.01"/>
+            <bool name="tileU" io="NONE" val="1" min="0.0" max="1.0"/>
+            <bool name="tileV" io="NONE" val="1" min="0.0" max="1.0"/>
+            <float name="filter" io="NONE" val="1.000000" min="0.0" max="10.0" inc="0.01"/>
+            <color name="color" io="OUT" val="0.000000,0.000000,0.000000,0.000000"/>
+            <float name="val" io="OUT" val="0.000000"/>
+        </param>
+    </image>
+</c3ddef>
