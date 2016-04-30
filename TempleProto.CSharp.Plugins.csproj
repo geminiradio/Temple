@@ -67,6 +67,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\ImportedAssets\Gem\Shaders\Gem.shader" />
+    <None Include="Assets\Models\SlotsAndPieces\EyePiece1\Materials\StoneGray.c3dmat\Resources\Shaderdef.xml" />
+    <None Include="Assets\Models\SlotsAndPieces\EyeSlot1\Materials\Stone.c3dmat\Resources\Shaderdef.xml" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_AlphaOut.shader" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_Blit.shader" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_BlitFlip.shader" />

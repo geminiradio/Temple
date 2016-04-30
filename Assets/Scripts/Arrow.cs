@@ -51,11 +51,16 @@ public class Arrow : MonoBehaviour {
 
     void OnCollisionEnter (Collision col)
     {
-//        Debug.Log(" Arrow collider hit " + col.collider.gameObject.name + "Relative velocity was " + col.relativeVelocity + ", magnitude " + col.relativeVelocity.magnitude);
+        //        Debug.Log(" Arrow collider hit " + col.collider.gameObject.name + "Relative velocity was " + col.relativeVelocity + ", magnitude " + col.relativeVelocity.magnitude);
 
         if (col.collider.gameObject.name == "Player")
             if (col.relativeVelocity.magnitude > velocityThresholdForDamage)
+            {
                 Debug.Log("***** PLAYER INJURED BY ARROW *****");
+                AudioSource audio = col.collider.gameObject.GetComponent<AudioSource>();
+                if (audio != null)
+                    audio.Play();
+            }
 
 
     }

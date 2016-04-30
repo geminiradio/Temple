@@ -282,42 +282,21 @@ public class TempleWall : MonoBehaviour {
     }
 
 
-    public bool ShortBlocksFitHere(WallBlockPosition wallPos)
+    public bool PositionIsTop (WallBlockPosition wallPos)
     {
-        switch (wallPos)
-        {
-            case WallBlockPosition.TopLeft:
-                return true;
+        return ((wallPos == WallBlockPosition.TopCenter) || (wallPos == WallBlockPosition.TopLeft) || (wallPos == WallBlockPosition.TopRight));
+    }
 
-            case WallBlockPosition.TopCenter:
-                return true;
+    public bool PositionIsMiddle (WallBlockPosition wallPos)
+    {
+        return ((wallPos == WallBlockPosition.MiddleCenter) || (wallPos == WallBlockPosition.MiddleLeft) || (wallPos == WallBlockPosition.MiddleRight));
+    }
 
-            case WallBlockPosition.TopRight:
-                return true;
-
-            case WallBlockPosition.MiddleLeft:
-                return false;
-
-            case WallBlockPosition.MiddleCenter:
-                return false;
-
-            case WallBlockPosition.MiddleRight:
-                return false;
-
-            case WallBlockPosition.BottomLeft:
-                return true;
-
-            case WallBlockPosition.BottomCenter:
-                return true;
-
-            case WallBlockPosition.BottomRight:
-                return true;
-
-        }
-
-        Debug.LogError("WallBlockPosition not assigned correctly");
-        return false;
+    public bool PositionIsBottom (WallBlockPosition wallPos)
+    {
+        return ((wallPos == WallBlockPosition.BottomCenter) || (wallPos == WallBlockPosition.BottomLeft) || (wallPos == WallBlockPosition.BottomRight));
 
     }
+
 
 }

@@ -62,6 +62,9 @@ public class VRInteractable : MonoBehaviour {
                 {
                     case VRInteractResponse.PickUp:
                         GetPickedUp();
+                        SnapToPosition snap = GetComponent<SnapToPosition>();
+                        if (snap != null)
+                            snap.StartCheckingForSnapTargets();
                         break;
 
                     case VRInteractResponse.DEBUG_scale:
@@ -81,19 +84,22 @@ public class VRInteractable : MonoBehaviour {
             {
                 if (triggerState == ButtonState.JustReleased)
                 {
-                    UnpairWithInteractor(interactor);
-
                     switch (interactResponse)
                     {
                         case VRInteractResponse.PickUp:
                             GetDropped();
+                            SnapToPosition snap = GetComponent<SnapToPosition>();
+                            if (snap != null)
+                                snap.StopCheckingForSnapTargets();
                             break;
 
                         case VRInteractResponse.DEBUG_scale:
                             StopScaling();
                             break;
-
                     }
+
+                    UnpairWithInteractor(interactor);
+
                 }   // currentInteractor just released me
 
                 else if (triggerState == ButtonState.HeldDown)
@@ -113,6 +119,19 @@ public class VRInteractable : MonoBehaviour {
 
     } 
 
+    // called by external scripts, eg - when the object you were holding snaps into a slot and tells you to stop holding it
+    public void DiscontinueBehavior()
+    {
+        switch (interactResponse)
+        {
+            case VRInteractResponse.PickUp:
+                GetDropped(false);
+                break;
+        }
+
+        UnpairWithInteractor(currentInteractor);
+
+    }
 
     private void PairWithInteractor (WandController interactor)
     {
@@ -185,8 +204,14 @@ public class VRInteractable : MonoBehaviour {
 		}
 	}
 
-    // for pick up / throw behavior
+    // by default when GetDropped is called, it applies a throw impulse 
     private void GetDropped ()
+    {
+        GetDropped(true);
+    }
+
+    // for pick up / throw behavior
+    private void GetDropped (bool applyThrowImpulse)
 	{
         currentlyTrackingPositions = false;
 
@@ -201,8 +226,9 @@ public class VRInteractable : MonoBehaviour {
 		else
 		{
 			rigidbody.isKinematic = false;
-//            rigidbody.detectCollisions = true;
-            rigidbody.AddForce(CalculateThrowImpulse(), ForceMode.Impulse);  // TODO - add the point of torque - the wand controller's trigger location in world space (or where the wand controller first touched this object?)
+            //            rigidbody.detectCollisions = true;
+            if (applyThrowImpulse)
+                rigidbody.AddForceAtPosition(CalculateThrowImpulse(), currentInteractor.GetInteractPointPosition(),  ForceMode.Impulse);  
         }
 
         ResetTransformList();

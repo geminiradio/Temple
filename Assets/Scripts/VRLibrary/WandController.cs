@@ -18,6 +18,7 @@ public class WandController : MonoBehaviour {
 	public VRInteractable currentSelection = null;   // what interactable is the wand controller currently touching (eg - for possible future interaction)? this variable is managed by this class     TODO this should probs be a list of all such interactables?
     public VRInteractable currentInteractable = null;  // what interactable is the wand controller currently paired with for interaction, eg - object being carried.  this is always set by the target interactable, not by this class
 
+    public SphereCollider interactPoint;
 
     // SteamVR variables I don't understand well enough yet
     private Valve.VR.EVRButtonId trigger = Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger;
@@ -26,9 +27,22 @@ public class WandController : MonoBehaviour {
 
 
 	void Start () {
-	
+
 		trackedObj = GetComponent<SteamVR_TrackedObject> ();
-	}
+
+        if (interactPoint == null)
+            interactPoint = GetComponent<SphereCollider>();
+
+        if (interactPoint == null)
+        {
+            interactPoint = gameObject.AddComponent<SphereCollider>();
+
+            // default values for wand controller interactPoint / SphereCollider
+            interactPoint.isTrigger = true;
+            interactPoint.center = new Vector3(0, -0.06f, 0.03f);
+            interactPoint.radius = 0.01f;
+        }
+    }
 	
 
 	void Update () {
@@ -180,5 +194,10 @@ public class WandController : MonoBehaviour {
 		}
 	}
 
+
+    public Vector3 GetInteractPointPosition ()
+    {
+        return transform.position + interactPoint.center;
+    }
 
 }

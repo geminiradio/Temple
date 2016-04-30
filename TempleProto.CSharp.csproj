@@ -76,10 +76,14 @@
     <Compile Include="Assets\Scripts\Arrow.cs" />
     <Compile Include="Assets\Scripts\ArrowTrap.cs" />
     <Compile Include="Assets\Scripts\CodeTools.cs" />
+    <Compile Include="Assets\Scripts\ContainerConfiguration.cs" />
     <Compile Include="Assets\Scripts\EditorScripting.cs" />
     <Compile Include="Assets\Scripts\EnvironmentManager.cs" />
     <Compile Include="Assets\Scripts\GameplayManager.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
+    <Compile Include="Assets\Scripts\RandomizeSFX.cs" />
+    <Compile Include="Assets\Scripts\Slot.cs" />
+    <Compile Include="Assets\Scripts\SnapToPosition.cs" />
     <Compile Include="Assets\Scripts\SteamVR\Extras\SteamVR_GazeTracker.cs" />
     <Compile Include="Assets\Scripts\SteamVR\Extras\SteamVR_LaserPointer.cs" />
     <Compile Include="Assets\Scripts\SteamVR\Extras\SteamVR_Teleporter.cs" />
@@ -114,11 +118,14 @@
     <Compile Include="Assets\Scripts\TempleWall.cs" />
     <Compile Include="Assets\Scripts\TempleWallBlock.cs" />
     <Compile Include="Assets\Scripts\Trap.cs" />
+    <Compile Include="Assets\Scripts\TreasureTable.cs" />
     <Compile Include="Assets\Scripts\VRLibrary\VRInteractable.cs" />
     <Compile Include="Assets\Scripts\VRLibrary\WandController.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\ImportedAssets\Gem\Shaders\Gem.shader" />
+    <None Include="Assets\Models\SlotsAndPieces\EyePiece1\Materials\StoneGray.c3dmat\Resources\Shaderdef.xml" />
+    <None Include="Assets\Models\SlotsAndPieces\EyeSlot1\Materials\Stone.c3dmat\Resources\Shaderdef.xml" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_AlphaOut.shader" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_Blit.shader" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_BlitFlip.shader" />

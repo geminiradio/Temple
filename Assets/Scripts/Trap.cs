@@ -5,7 +5,7 @@ public class Trap : TempleWallBlock {
 
     public bool oneShot = true;
     public Collider triggerVolume;
-    public AudioSource triggerSFX;
+    public RandomizeSFX triggerSFX;
 
     public bool DEBUG_TriggerNow = false;
     private int triggerCount = 0;
@@ -40,7 +40,7 @@ public class Trap : TempleWallBlock {
             return false;
 
         if (triggerSFX != null)
-            triggerSFX.PlayOneShot(triggerSFX.clip);
+            triggerSFX.PlaySFX();
 
         return true;
     }
