@@ -260,7 +260,7 @@ public class TempleWall : MonoBehaviour {
     {
         Transform oldBlockTransform = GetBlockTransform(wallPos);
 
-        CodeTools.CopyTransform(oldBlockTransform, newBlock.transform, false);
+        CodeTools.CopyTransform(oldBlockTransform, newBlock.transform, true, true, false);
 
         DisableBlock(wallPos);
 

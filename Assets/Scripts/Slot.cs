@@ -65,7 +65,7 @@ public class Slot : MonoBehaviour {
 
     protected virtual void TriggerSlotEffects ()
     {
-        Debug.Log("Triggering Slot Effects!");
+//        Debug.Log("Triggering Slot Effects!");
 
         AudioSource audio;
         audio = GetComponent<AudioSource>();
@@ -79,7 +79,7 @@ public class Slot : MonoBehaviour {
 
     protected virtual void TriggerUnslotEffects ()
     {
-        Debug.Log("Triggering Unslot Effects!");
+//        Debug.Log("Triggering Unslot Effects!");
 
         AudioSource audio;
         audio = GetComponent<AudioSource>();

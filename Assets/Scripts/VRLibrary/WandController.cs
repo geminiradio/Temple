@@ -18,12 +18,14 @@ public class WandController : MonoBehaviour {
 	public VRInteractable currentSelection = null;   // what interactable is the wand controller currently touching (eg - for possible future interaction)? this variable is managed by this class     TODO this should probs be a list of all such interactables?
     public VRInteractable currentInteractable = null;  // what interactable is the wand controller currently paired with for interaction, eg - object being carried.  this is always set by the target interactable, not by this class
 
-    public SphereCollider interactPoint;
+    public SphereCollider interactPoint;  // this is the trigger that this controller uses to detect collisions with other objects
+    public Transform attachPoint;  // this is the default transform that held objects snap to when held (but they have an offset to this transform and if null they don't snap at all)
+
 
     // SteamVR variables I don't understand well enough yet
+    public SteamVR_Controller.Device controller { get { return SteamVR_Controller.Input((int)trackedObj.index); } }
+    private SteamVR_TrackedObject trackedObj;
     private Valve.VR.EVRButtonId trigger = Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger;
-	private SteamVR_Controller.Device controller { get { return SteamVR_Controller.Input ((int)trackedObj.index);  }  }
-	private SteamVR_TrackedObject trackedObj;
 
 
 	void Start () {
@@ -35,6 +37,7 @@ public class WandController : MonoBehaviour {
 
         if (interactPoint == null)
         {
+            Debug.Log("Adding default interactPoint (SphereCollider trigger) to "+gameObject);
             interactPoint = gameObject.AddComponent<SphereCollider>();
 
             // default values for wand controller interactPoint / SphereCollider
@@ -42,6 +45,13 @@ public class WandController : MonoBehaviour {
             interactPoint.center = new Vector3(0, -0.06f, 0.03f);
             interactPoint.radius = 0.01f;
         }
+
+        if (attachPoint == null)
+        {
+            Debug.Log("Assigning default attachPoint (this Transform) for "+gameObject);
+            attachPoint = transform;
+        }
+
     }
 	
 
@@ -145,8 +155,8 @@ public class WandController : MonoBehaviour {
 		}
 		else
 		{
-            if (other.gameObject != null)
-    			Debug.Log("WandController collided with a non-VRInteractable object, so ignoring it; it's "+ other.gameObject);
+//            if (other.gameObject != null)
+//    			Debug.Log("WandController collided with a non-VRInteractable object, so ignoring it; it's "+ other.gameObject);
 		}
 			
 	}

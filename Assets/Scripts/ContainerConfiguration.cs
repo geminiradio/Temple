@@ -50,7 +50,7 @@ public class ContainerConfiguration : MonoBehaviour {
         if (gm.readyForInsertion != null)
         {
             usedByGoalObject = GetIndexForGoalObject();
-            CodeTools.CopyTransform(objectSpots[usedByGoalObject].transform, gm.readyForInsertion.transform);
+            CodeTools.CopyTransform(objectSpots[usedByGoalObject].transform, gm.readyForInsertion.transform, true, true, false);
             Debug.Log(gm.readyForInsertion + " teleported to newly-emerging alcove.");
             gm.readyForInsertion = null;
         }
