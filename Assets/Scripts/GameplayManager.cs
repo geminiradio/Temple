@@ -35,7 +35,7 @@ public class GameplayManager : MonoBehaviour {
         for (int i=0; i<goalPieces.Length; i++)
         {
             if (!IsInLimbo(i))
-                Debug.LogError(" goalPiece["+i+"], "+goalPieces[i]+" should have its starting position inside limbo.");
+                Debug.LogError(" goalPiece["+i+"], "+goalPieces[i]+", should have its starting position inside limbo.");
         }
 
 
@@ -78,8 +78,8 @@ public class GameplayManager : MonoBehaviour {
         {
             if (!NothingInLimbo())
                 readyForInsertion = RandomAvailableGoalPiece();
-            else
-                Debug.Log("Can't impose goal spawns because nothing is in limbo."); 
+//            else
+ //               Debug.Log("Can't impose goal spawns because nothing is in limbo."); 
                
         }
 

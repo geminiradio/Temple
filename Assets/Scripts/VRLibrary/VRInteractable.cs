@@ -9,7 +9,8 @@ public enum VRInteractedBy : int {
 
 // what response does this object have to being interacted with
 public enum VRInteractResponse : int {
-	PickUp,
+	PickUp_Physical,
+    PickUp_NonPhysical,
     DEBUG_scale
 }
 
@@ -22,13 +23,10 @@ public class VRInteractable : MonoBehaviour {
 	public WandController currentInteractor;   // what input is currently interacting w/ me   (eg - the specific wand controller)
 
     // pick up (and throw) behavior 
+    public Transform attachPointOffset;  // how do I position and orient myself relative to the currentInteractor's attachPoint.  if null, no snapping will occur.
+    public float jointBreakForce = 4000f;  // how much force will cause me to let go of this object
     private Transform originalParent = null;
-    private bool currentlyTrackingPositions = false;
-    private int trackingPeriod = 3;  // once every how many frames do we keep track of where the controller was located?
-    private int lookBackIndex = 7;  //  how far back in the position list do we check to calculate the throw trajectory?  this number x trackingPeriod/90 = how many seconds we look back
-    private float throwForceMult = 14; // this one is a constant (editable in the editor) for tuning purposes
-    // index 0 is the most recent frame, index 10 would be 10 x trackingPeriod / 90 seconds ago
-    private Vector3[] positionList;
+
 
     // DEBUG_scaling behavior
     private Vector3 originalScale;
@@ -39,11 +37,7 @@ public class VRInteractable : MonoBehaviour {
     void Start()
     {
         // pick up / throw behavior
-        if (lookBackIndex < 5)
-            Debug.LogError("lookBackIndex must be at least 5.");
         originalParent = this.transform.parent;
-        positionList = new Vector3[20];  // with trackingPeriod of 3, this tracks 2/3 of one second
-        ResetTransformList();
     }
 
 
@@ -60,7 +54,8 @@ public class VRInteractable : MonoBehaviour {
 
                 switch (interactResponse)
                 {
-                    case VRInteractResponse.PickUp:
+                    case VRInteractResponse.PickUp_Physical:
+                    case VRInteractResponse.PickUp_NonPhysical:
                         GetPickedUp();
                         SnapToPosition snap = GetComponent<SnapToPosition>();
                         if (snap != null)
@@ -86,19 +81,17 @@ public class VRInteractable : MonoBehaviour {
                 {
                     switch (interactResponse)
                     {
-                        case VRInteractResponse.PickUp:
-                            GetDropped();
-                            SnapToPosition snap = GetComponent<SnapToPosition>();
-                            if (snap != null)
-                                snap.StopCheckingForSnapTargets();
+                        case VRInteractResponse.PickUp_Physical:
+                        case VRInteractResponse.PickUp_NonPhysical:
+                            LetGoOfHeldObject(true);
                             break;
 
                         case VRInteractResponse.DEBUG_scale:
                             StopScaling();
+                            UnpairWithInteractor(interactor);
                             break;
                     }
 
-                    UnpairWithInteractor(interactor);
 
                 }   // currentInteractor just released me
 
@@ -124,12 +117,14 @@ public class VRInteractable : MonoBehaviour {
     {
         switch (interactResponse)
         {
-            case VRInteractResponse.PickUp:
+            case VRInteractResponse.PickUp_Physical:
+            case VRInteractResponse.PickUp_NonPhysical:
+                // this assumes it was a SnapToTarget that called this method, in which case you don't have to tell it to stop checking for snap targets, because it already called that method on itself
                 GetDropped(false);
+                UnpairWithInteractor(currentInteractor);
                 break;
         }
 
-        UnpairWithInteractor(currentInteractor);
 
     }
 
@@ -164,8 +159,206 @@ public class VRInteractable : MonoBehaviour {
     }
 
 
+    // for pick up / throw behavior - one method that encapsulates all the things you do when you release a held object
+    private void LetGoOfHeldObject(bool applyThrowForce)
+    {
+        GetDropped(applyThrowForce);
 
-    void FixedUpdate()
+        SnapToPosition snap = GetComponent<SnapToPosition>();
+        if (snap != null)
+            snap.StopCheckingForSnapTargets();
+
+        UnpairWithInteractor(currentInteractor);
+    }
+
+
+    // for pick up / throw behavior
+    private void GetPickedUp ()
+	{
+		Rigidbody myRigidbody = GetComponent<Rigidbody>();
+        if (myRigidbody == null)
+        {
+            Debug.LogError(this + " doesn't have a rigidbody.");
+            return;
+        }
+
+        if (attachPointOffset != null) 
+        {
+            // TODO - don't snap to this position unless there is no collision if you do snap to it
+            // so introduce a "WaitingToSnapToAttachPoint state" where it tests target position until its valid
+            transform.position = currentInteractor.attachPoint.position + attachPointOffset.localPosition;
+            transform.rotation = currentInteractor.attachPoint.rotation * attachPointOffset.localRotation;
+        }
+
+        if (interactResponse == VRInteractResponse.PickUp_NonPhysical)
+        { 
+            this.transform.parent = currentInteractor.transform;
+            myRigidbody.isKinematic = true;
+             //            rigidbody.detectCollisions = false;
+        }
+        else
+        {
+            Rigidbody controllerRB = currentInteractor.GetComponent<Rigidbody>();
+            if (controllerRB == null)
+            {
+                Debug.Log("Controller "+currentInteractor+" didn't have a Rigidbody, so adding one. Is that really what we want?");
+                controllerRB = currentInteractor.gameObject.AddComponent<Rigidbody>();
+                controllerRB.isKinematic = true;
+            }
+
+            if (controllerRB != null)
+            {
+                myRigidbody.useGravity = false;  // is this necessary?
+
+                FixedJoint joint = gameObject.GetComponent<FixedJoint>();
+                if (joint != null)
+                {
+                    Debug.LogError(this.gameObject+" already had a FixedJoint on it, so destroying that, but it probs shouldn't have had one?");
+                    DestroyImmediate(joint);
+                }
+
+                joint = gameObject.AddComponent<FixedJoint>();
+                joint.breakForce = jointBreakForce;
+                joint.connectedBody = controllerRB;
+                joint.enablePreprocessing = false;
+            }
+            else
+            {
+                Debug.LogError(currentInteractor.gameObject + " has no rigidbody component, despite attempts to add one, so can't attach a FixedJoint to it.");
+            }
+        }
+
+		
+	}
+
+    // by default when GetDropped is called, it applies a throw impulse 
+    private void GetDropped ()
+    {
+        GetDropped(true);
+    }
+
+    // for pick up / throw behavior
+    private void GetDropped (bool applyThrowImpulse)
+	{
+
+        Rigidbody myRigidbody = GetComponent<Rigidbody>();
+        if (myRigidbody == null)
+        {
+            Debug.LogError(this + " doesn't have a rigidbody.");
+            return;
+        }
+
+
+        if (interactResponse == VRInteractResponse.PickUp_NonPhysical)
+        {
+            this.transform.parent = originalParent;
+        }
+        else
+        {
+            myRigidbody.useGravity = true;
+
+            // break the spring and remove the rb from the controller
+            FixedJoint joint = GetComponent<FixedJoint>();
+//            Rigidbody controllerRB = joint.connectedBody;
+
+            if (joint != null)
+                Destroy(joint);
+            else
+                Debug.LogError(this.gameObject+" didn't have a joint on it, but it should have!");
+
+            /*  don't remove controller's rigidbody if we had to add it
+            if (controllerRB != null)
+                Destroy(controllerRB);
+            else
+                Debug.LogError(this.gameObject + " either didn't have a joint, or its joint didn't have a connectedBody, which it should have!");
+                */
+
+        }
+
+
+        myRigidbody.isKinematic = false;
+        //            rigidbody.detectCollisions = true;
+
+        if (applyThrowImpulse)
+        {
+            myRigidbody.velocity = currentInteractor.controller.velocity;
+            myRigidbody.angularVelocity = currentInteractor.controller.angularVelocity;
+            myRigidbody.maxAngularVelocity = currentInteractor.controller.angularVelocity.magnitude;
+        }
+        
+
+	}
+
+
+    // pick up / throw behavior 
+    void OnJointBreak(float breakForce)
+    {
+        LetGoOfHeldObject(false);
+    }
+
+
+
+    // DEBUG_scale behavior
+    private void StartScaling ()
+    {
+        originalScale = transform.localScale;
+        originalInteractorY = currentInteractor.transform.position.y;
+    }
+
+    // DEBUG_scale behavior
+    private void StopScaling ()
+    {
+
+    }
+
+    // DEBUG_scale behavior
+    // note that IntreractedWith gets called every frame by every interactor in contact with this interactable
+    void UpdateScale()
+    {
+        float finalScale;
+
+        // scaleMult should go from 0 to 1 (although it's not clamped, so if you exceed scaleMaxDistance it can exceed 1)
+        float scaleMult = ((currentInteractor.transform.position.y - originalInteractorY) / scaleMaxDistance);
+
+        if (scaleMult >= 0)   // scaling up / raising the controller
+            finalScale = 1f + (scaleMult * scaleAtMaxDistance);
+        else                  // scaling down / lowering the controller
+            finalScale = 1f / (((1f / scaleAtMaxDistance) - scaleMult) * scaleAtMaxDistance);
+
+        Vector3 newScale = originalScale * finalScale;
+
+        transform.localScale = newScale;
+
+    }
+
+
+
+
+
+
+
+
+    //// BELOW HERE = depricated throw code, which manually tracked the history of positions of the controller and based on that calculated impulse at the moment of release
+
+    /*
+    private bool currentlyTrackingPositions = false;
+    private int trackingPeriod = 3;  // once every how many frames do we keep track of where the controller was located?
+    private int lookBackIndex = 7;  //  how far back in the position list do we check to calculate the throw trajectory?  this number x trackingPeriod/90 = how many seconds we look back
+    private float throwForceMult = 14; // this one is a constant (editable in the editor) for tuning purposes
+    // index 0 is the most recent frame, index 10 would be 10 x trackingPeriod / 90 seconds ago
+    private Vector3[] positionList;
+
+        void Start()
+    {
+        // pick up / throw behavior
+        if (lookBackIndex < 5)
+            Debug.LogError("lookBackIndex must be at least 5.");
+        positionList = new Vector3[20];  // with trackingPeriod of 3, this tracks 2/3 of one second
+        ResetTransformList();
+    }
+
+
+        void FixedUpdate()
 	{
         // pick up / throw behavior
 		if (currentlyTrackingPositions)
@@ -184,58 +377,27 @@ public class VRInteractable : MonoBehaviour {
 	}
 
 
-    // for pick up / throw behavior
+        // for pick up / throw behavior
     private void GetPickedUp ()
 	{
+    -- at the beginning of this method
         currentlyTrackingPositions = true;
 
-		this.transform.parent = currentInteractor.transform;
 
-		Rigidbody rigidbody = GetComponent<Rigidbody>();
-
-		if (rigidbody == null)
-		{
-			Debug.LogError(this+" doesn't have a rigidbody.");
-		}
-		else
-		{
-			rigidbody.isKinematic = true;
-//            rigidbody.detectCollisions = false;
-		}
-	}
-
-    // by default when GetDropped is called, it applies a throw impulse 
-    private void GetDropped ()
-    {
-        GetDropped(true);
-    }
-
-    // for pick up / throw behavior
-    private void GetDropped (bool applyThrowImpulse)
+        private void GetDropped (bool applyThrowImpulse)
 	{
         currentlyTrackingPositions = false;
 
-        this.transform.parent = originalParent;
+    --instead of setting velocity and angular velocity:
+    //                myRigidbody.AddForceAtPosition(CalculateThrowImpulse(), currentInteractor.GetInteractPointPosition(), ForceMode.Impulse);
 
-		Rigidbody rigidbody = GetComponent<Rigidbody>();
+    --- at the very end:
+            ResetTransformList();
 
-		if (rigidbody == null)
-		{
-			Debug.LogError(this+" doesn't have a rigidbody.");
-		}
-		else
-		{
-			rigidbody.isKinematic = false;
-            //            rigidbody.detectCollisions = true;
-            if (applyThrowImpulse)
-                rigidbody.AddForceAtPosition(CalculateThrowImpulse(), currentInteractor.GetInteractPointPosition(),  ForceMode.Impulse);  
-        }
-
-        ResetTransformList();
-	}
+    }
 
 
-    // for pick up / throw behavior
+        // for pick up / throw behavior
     private Vector3 CalculateThrowImpulse()
     {
         if (V3IsVoid(positionList[lookBackIndex]))
@@ -311,38 +473,6 @@ public class VRInteractable : MonoBehaviour {
 	}
 
 
-    // DEBUG_scale behavior
-    private void StartScaling ()
-    {
-        originalScale = transform.localScale;
-        originalInteractorY = currentInteractor.transform.position.y;
-    }
 
-    // DEBUG_scale behavior
-    private void StopScaling ()
-    {
-
-    }
-
-    // DEBUG_scale behavior
-    // note that IntreractedWith gets called every frame by every interactor in contact with this interactable
-    void UpdateScale()
-    {
-        float finalScale;
-
-        // scaleMult should go from 0 to 1 (although it's not clamped, so if you exceed scaleMaxDistance it can exceed 1)
-        float scaleMult = ((currentInteractor.transform.position.y - originalInteractorY) / scaleMaxDistance);
-
-        if (scaleMult >= 0)   // scaling up / raising the controller
-            finalScale = 1f + (scaleMult * scaleAtMaxDistance);
-        else                  // scaling down / lowering the controller
-            finalScale = 1f / (((1f / scaleAtMaxDistance) - scaleMult) * scaleAtMaxDistance);
-
-        Vector3 newScale = originalScale * finalScale;
-
-        transform.localScale = newScale;
-
-    }
-
-
+    */
 }

@@ -57,6 +57,7 @@ public class Arrow : MonoBehaviour {
             if (col.relativeVelocity.magnitude > velocityThresholdForDamage)
             {
                 Debug.Log("***** PLAYER INJURED BY ARROW *****");
+                // TODO - the player should register that it is hit, not the arrow
                 AudioSource audio = col.collider.gameObject.GetComponent<AudioSource>();
                 if (audio != null)
                     audio.Play();

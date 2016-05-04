@@ -13,19 +13,28 @@ public static class CodeTools  {
     // "to" is given the transform of "from"
     public static void CopyTransform(Transform from, Transform to)
     {
-        CopyTransform(from, to, true);
+        CopyTransform(from, to, true, true, true);
     }
 
-    public static void CopyTransform(Transform from, Transform to, bool includeScale)
+    public static void CopyTransform(Transform from, Transform to, bool includePosition, bool includeRotation, bool includeScale)
     {
-        Vector3 newPos = from.position;
-        Quaternion newRot = from.rotation;
-        Vector3 newScale = from.localScale;
 
-        to.position = newPos;
-        to.rotation = newRot;
+        if (includePosition)
+        {
+            Vector3 newPos = from.position;
+            to.position = newPos;
+        }
+
+        if (includeRotation)
+        {
+            Quaternion newRot = from.rotation;
+            to.rotation = newRot;
+        }
         if (includeScale)
+        {
+            Vector3 newScale = from.localScale;
             to.localScale = newScale;
+        }
 
     }
 

@@ -58,7 +58,7 @@ public class TempleWallBlock : MonoBehaviour {
 
         // EmergeFX are assumed to be on&animating by default when they spawn
         GameObject fx = (GameObject)Instantiate(emergeFXPrefab) as GameObject;
-        CodeTools.CopyTransform(transform, fx.transform, false);
+        CodeTools.CopyTransform(transform, fx.transform, true, true, false);
         fx.transform.parent = transform;
         Destroy(fx, (GameplayManager.blockEmergeDuration + 2f));
     }

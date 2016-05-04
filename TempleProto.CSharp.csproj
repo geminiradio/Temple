@@ -77,6 +77,7 @@
     <Compile Include="Assets\Scripts\ArrowTrap.cs" />
     <Compile Include="Assets\Scripts\CodeTools.cs" />
     <Compile Include="Assets\Scripts\ContainerConfiguration.cs" />
+    <Compile Include="Assets\Scripts\DEBUG_Checker.cs" />
     <Compile Include="Assets\Scripts\EditorScripting.cs" />
     <Compile Include="Assets\Scripts\EnvironmentManager.cs" />
     <Compile Include="Assets\Scripts\GameplayManager.cs" />

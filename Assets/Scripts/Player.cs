@@ -31,7 +31,7 @@ public class Player : MonoBehaviour {
 
     private void UpdateCollider()
     {
-        CodeTools.CopyTransform(hmd, playerCollider.transform, false);
+        CodeTools.CopyTransform(hmd, playerCollider.transform, true, true, false);
 
         // used for both y position and y scale
         float top = (hmd.position.y / 2) + playerHeightOffset;
