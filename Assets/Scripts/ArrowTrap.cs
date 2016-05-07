@@ -41,6 +41,7 @@ public class ArrowTrap : Trap {
 
         GameObject arrowGO = (GameObject)Instantiate(arrowPrefab, arrowLocation.position, arrowLocation.rotation) as GameObject;
 
+        // TODO - this causes arrows to scale size, do we want that?
         arrowGO.transform.parent = transform;
 
         myArrow = arrowGO.GetComponent<Arrow>();

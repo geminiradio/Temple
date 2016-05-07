@@ -60,6 +60,8 @@ public class Slot : MonoBehaviour {
 
         pairedSnapObject = null;
 
+        obj.BecomeUnslotted();
+
         TriggerUnslotEffects();
     }
 

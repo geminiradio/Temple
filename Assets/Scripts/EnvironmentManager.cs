@@ -38,11 +38,21 @@ public enum WallBlockType : int {
 public class EnvironmentManager : MonoBehaviour {
 
     // global game variables
-    public static float floorSize = 3f;  // assumes the floor is a square
+    private static float baseFloorSize = 3f;  // assumes base floor tile is a square
+    public float floorSizeX
+    {
+        get { return baseFloorSize*transform.lossyScale.x; }
+    }
+    public float floorSizeZ
+    {
+        get { return baseFloorSize * transform.lossyScale.z; }
+    }
+
     public static float blockThickness = 0.5f; // this is the dimension that faces the player
 
     public TempleWall frontWall, backWall, leftWall, rightWall;
 
+    // DEBUG stuff
     public RelativeDirection DEBUG_whichWall = RelativeDirection.Left;
     public WallBlockPosition DEBUG_whichPos = WallBlockPosition.TopLeft;
     public WallBlockType DEBUG_whatToSpawn = WallBlockType.Alcove;
@@ -52,13 +62,21 @@ public class EnvironmentManager : MonoBehaviour {
     public WallBlockType[] DEBUG_typeRandomOnes;
 
     // all prefabs needed to build environment
-    public GameObject alcovePrefab_short, alcovePrefab_tall;
-    public GameObject arrowTrapPrefab_bottom, arrowTrapPrefab_middle, arrowTrapPrefab_top;
+    public GameObject alcovePrefab_bottom, alcovePrefab_middle, alcovePrefab_top;
+    public GameObject arrowTrapPrefab_bottom, arrowTrapPrefab_middle, arrowTrapPrefab_top, arrowTrapPrefab_topAngled;
+
+    public GameObject propsFolder;
+
+    private GameplayManager gameplayManager;
 
     void Start () {
 
         CollectWalls();
         CheckWalls();
+
+        // TODO - examine calibrated room scale and use that to dynamically scale environment
+        if (transform.localScale != Vector3.one)
+            ScaleEnvironment();
 
         // just some debug playtesty spawning for fun
 
@@ -75,8 +93,18 @@ public class EnvironmentManager : MonoBehaviour {
             }
         }
 
-	}
-	
+        if (propsFolder == null)
+            propsFolder = GameObject.Find("Props");
+
+        if (propsFolder == null)
+        {
+            propsFolder = new GameObject();
+            propsFolder.name = "Props";
+        }
+
+        gameplayManager = GameObject.FindObjectOfType<GameplayManager>();
+    }
+
 
 
     private void CollectWalls ()
@@ -128,7 +156,6 @@ public class EnvironmentManager : MonoBehaviour {
         SpawnBlock(blockType, GetWallAtDirection(wallDir), wallPos);
     }
 
-    // if goalPiece is non-null, the newly spawned block should attempt to include it 
     public void SpawnBlock (WallBlockType blockType, TempleWall wall, WallBlockPosition wallPos)
     {
         // fetch the GO prefab using the enum
@@ -139,6 +166,13 @@ public class EnvironmentManager : MonoBehaviour {
         newBlockGO.transform.parent = wall.transform;
         TempleWallBlock newBlock = newBlockGO.GetComponent<TempleWallBlock>();
         newBlock.blockPosition = wallPos;
+
+        // this happens automatically assuming the new block gets parented under "Environment" so, not necessary
+//        if (transform.localScale != Vector3.one)
+ //           newBlock.ScaleSelf(transform.localScale);
+
+        newBlockGO.transform.localScale = Vector3.Scale(newBlockGO.transform.localScale, transform.localScale);
+
 
         wall.IntegrateNewBlock(newBlock, blockType, wallPos);
     }
@@ -167,7 +201,7 @@ public class EnvironmentManager : MonoBehaviour {
 
     }
 
-    public RelativeDirection RandomRelativeDirection ()
+    public static RelativeDirection RandomRelativeDirection ()
     {
 
         int r = Random.Range(1, 5);
@@ -193,7 +227,7 @@ public class EnvironmentManager : MonoBehaviour {
     }
 
 
-    public WallBlockPosition RandomWallBlockPosition()
+    public static WallBlockPosition RandomWallBlockPosition()
     {
 
         int r = Random.Range(1, 10);
@@ -239,18 +273,35 @@ public class EnvironmentManager : MonoBehaviour {
         switch (b)
         {
             case WallBlockType.Alcove:
-                if (wall.PositionIsMiddle(pos))
-                    return alcovePrefab_tall;
+                if (TempleWall.PositionIsTop(pos))
+                    return alcovePrefab_top;
+                else if (TempleWall.PositionIsMiddle(pos))
+                    return alcovePrefab_middle;
+                else if (TempleWall.PositionIsBottom(pos))
+                    return alcovePrefab_bottom;
                 else
-                    return alcovePrefab_short;
+                {
+                    Debug.LogError("Invalid wall position, apparently.");
+                    return null;
+                }
+
 
             case WallBlockType.ArrowTrap:
-                if (wall.PositionIsTop(pos))
-                    return arrowTrapPrefab_top;
-                else if (wall.PositionIsMiddle(pos))
+                if (TempleWall.PositionIsTop(pos))
+                {
+                    if (gameplayManager.DEBUG_angledTopArrow)
+                        return arrowTrapPrefab_topAngled;
+                    else
+                        return arrowTrapPrefab_top;
+                }
+                else if (TempleWall.PositionIsMiddle(pos))
+                {
                     return arrowTrapPrefab_middle;
-                else if (wall.PositionIsBottom(pos))
+                }
+                else if (TempleWall.PositionIsBottom(pos))
+                {
                     return arrowTrapPrefab_bottom;
+                }
                 else
                 {
                     Debug.LogError("Invalid wall position, apparently.");
@@ -277,5 +328,33 @@ public class EnvironmentManager : MonoBehaviour {
             return false;
 
     }
+
+
+    // make the floor footprint smaller and move/scale everything to fit
+    // TODO - if floor blocks get too small, reduce the number in the grid, eg - support 2x3 or 2x2 and not just 3x3
+    private void ScaleEnvironment()
+    {
+        if (transform.localScale.y != 1f)
+            Debug.LogError("When scaling environment, there's no need to scale Y!  It's not supported.");
+
+        if (transform.localScale.x != transform.localScale.z)
+            Debug.LogError("When scaling environment, make sure x and z are scaled to the same value.");
+
+        // do important things here if there are any?
+
+    }
+
+    public int BlockCount (WallBlockType blockType)
+    {
+        int toReturn = 0;
+
+        toReturn += frontWall.BlockCount(blockType);
+        toReturn += backWall.BlockCount(blockType);
+        toReturn += leftWall.BlockCount(blockType);
+        toReturn += rightWall.BlockCount(blockType);
+
+        return toReturn;
+    }
+
 
 }

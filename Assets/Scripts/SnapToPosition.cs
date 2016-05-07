@@ -6,6 +6,7 @@ using System.Collections;
 // but it doesn't track any game logic about being slotted or trigger side effects - this is basically a dumb "check for correct position and tell other scripts" script
 public class SnapToPosition : MonoBehaviour {
 
+    public bool startSlotted = false;  // if true, this object is considered plugged in at start
     public Transform targetTransform;
     public Vector3 targetPosOffset; 
     public Vector3 targetRotOffset;
@@ -14,8 +15,9 @@ public class SnapToPosition : MonoBehaviour {
     public float checkPeriod = 0.03f; // how often to check in seconds  
     public float firstCheckDelay = 2f;  // how long after check is initiated before a snap can be detected.  meant to solve problem of taking the object out of the slot but it instantly snaps back in.  TODO - better solution, such as "you have to move it a certain distance away first" ?
     public Slot targetSlot;
+    public bool becomeNonphysicalWhenSlotted = true;
 
-    private bool activeNow = false;  // TODO this should be a readonly property
+    private bool activeNow = false;  
     private float timeofNextCheck;
 
 
@@ -50,6 +52,17 @@ public class SnapToPosition : MonoBehaviour {
         if (checkPeriod < 0)
             Debug.LogError("checkPeriod must be greater than 0 and should be much less than 1 (try 0.03 maybe).");
 
+        if (startSlotted)
+        {
+            // TODO - this code is pretty much duplicate copy/pasted from below
+            SnapToTargetPosition();
+            if (targetSlot != null)
+                targetSlot.ObjectHasSlotted(this);
+            if (becomeNonphysicalWhenSlotted)
+                BecomePhysical(false);   // do this last, because by default at present VRInteractable will make the object physical again when dropped when CommunicateSnapToOtherScripts() is called
+
+        }
+
     }
 
     void Update () {
@@ -63,6 +76,9 @@ public class SnapToPosition : MonoBehaviour {
                 SnapToTargetPosition();
                 CommunicateSnapToOtherScripts();
                 StopCheckingForSnapTargets();
+
+                if (becomeNonphysicalWhenSlotted)
+                    BecomePhysical(false);   // do this last, because by default at present VRInteractable will make the object physical again when dropped when CommunicateSnapToOtherScripts() is called
             }
         }
 	}
@@ -83,6 +99,12 @@ public class SnapToPosition : MonoBehaviour {
     {
 //        Debug.Log(this + "done looking for snap target " + targetTransform.gameObject);
         activeNow = false;
+    }
+
+    // called by external scripts when this object has become unslotted
+    public void BecomeUnslotted ()
+    {
+        BecomePhysical(true);
     }
 
     public bool CheckForTarget()
@@ -137,5 +159,16 @@ public class SnapToPosition : MonoBehaviour {
         if (targetSlot != null)
             targetSlot.ObjectHasSlotted(this);
 
+    }
+
+    private void BecomePhysical (bool physical)
+    {
+        Rigidbody myRigidbody = GetComponent<Rigidbody>();
+
+        if (myRigidbody != null)
+        {
+            myRigidbody.isKinematic = !physical;
+            myRigidbody.useGravity = physical;
+        }
     }
 }

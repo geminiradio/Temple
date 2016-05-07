@@ -10,6 +10,8 @@ public class MinMaxValues
 
 public static class CodeTools  {
 
+    public static Vector3[] vector3Directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right, Vector3.up, Vector3.down};
+
     // "to" is given the transform of "from"
     public static void CopyTransform(Transform from, Transform to)
     {
@@ -209,6 +211,109 @@ public static class CodeTools  {
         }
 
         return valid;
+    }
+
+
+    // CURRENTLY ONLY SUPPORTS:  
+    // Rigidbody on root GO,  MeshCollider on child, MeshRenderer on child
+    //
+    // tests if the passed-in gameObject would collide with anything if it were teleported to passed-in postion
+    // it does this by turning renderers off, then changing colliders to triggers, then doing SweepTests in all 6 directions
+    public static bool TestForCollision(GameObject go, Vector3 testPosition)
+    {
+        if (go == null)
+        {
+            Debug.LogError("go is null");
+            return false;
+        }
+        if (go.transform.childCount != 1)
+        {
+            Debug.LogError(go+" childCount is not 1");
+        }
+
+        Rigidbody rb = go.GetComponent<Rigidbody>();
+        Transform child = go.transform.GetChild(0);
+        MeshCollider meshCol = child.gameObject.GetComponent<MeshCollider>();
+        MeshRenderer meshRend = child.gameObject.GetComponent<MeshRenderer>();
+
+        if (rb == null)
+        {
+            Debug.LogError(go+" does not have a Rigidbody component");
+            return false;
+        }
+        if (meshCol == null)
+        {
+            Debug.LogError(child.gameObject+" does not have a meshCollider component");
+            return false;
+        }
+        if (meshRend == null)
+        {
+            Debug.LogError(child.gameObject + " does not have a meshRenderer component");
+            return false;
+        }
+
+
+        bool orig_kin, orig_grav, orig_trig, orig_rend;
+        orig_kin = rb.isKinematic;
+        orig_grav = rb.useGravity;
+        orig_trig = meshCol.isTrigger;
+        orig_rend = meshRend.enabled;
+
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        meshCol.isTrigger = true;
+        meshRend.enabled= false;
+
+        Vector3 originalPosition = go.transform.position;
+
+        go.transform.position = testPosition;
+
+        bool doesntFit = false;
+        bool didntFitThisTime;
+        RaycastHit ray = new RaycastHit();
+
+        int i = 0;
+        while ((!doesntFit) && (i<vector3Directions.Length))
+        {
+            didntFitThisTime = rb.SweepTest(vector3Directions[i], out ray, 0.01f, QueryTriggerInteraction.Collide);
+            if (didntFitThisTime)
+            {
+                doesntFit = true;
+
+                Debug.Log(GetNameOfVector3(vector3Directions[i]) +": " + go + " hit " + ray.collider + " of " + ray.collider.gameObject + " at point " + ray.point);
+                GameObject newGO = new GameObject();
+                newGO.transform.position = ray.point;
+                newGO.name = go.name + ray.collider.gameObject.name;
+            }
+
+            i++;
+        }
+
+        rb.isKinematic = orig_kin;
+        rb.useGravity = orig_grav;
+        meshCol.isTrigger = orig_trig;
+        go.transform.position = originalPosition;
+        meshRend.enabled = orig_rend;
+
+        return !doesntFit;
+    }
+
+    public static string GetNameOfVector3(Vector3 v3)
+    {
+        if (v3 == Vector3.forward)
+            return "Forward";
+        if (v3 == Vector3.back)
+            return "Back";
+        if (v3 == Vector3.left)
+            return "Left";
+        if (v3 == Vector3.right)
+            return "Right";
+        if (v3 == Vector3.up)
+            return "Up";
+        if (v3 == Vector3.down)
+            return "Down";
+
+        return "(" + v3.x + "," + v3.y + "," + v3.z + ")";
     }
 
 }
