@@ -67,6 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\ImportedAssets\Gem\Shaders\Gem.shader" />
+    <None Include="Assets\Models\Chain\Read Me\Read Me.txt" />
     <None Include="Assets\Models\SlotsAndPieces\EyePiece1\Materials\StoneGray.c3dmat\Resources\Shaderdef.xml" />
     <None Include="Assets\Models\SlotsAndPieces\EyeSlot1\Materials\Stone.c3dmat\Resources\Shaderdef.xml" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_AlphaOut.shader" />
@@ -78,6 +79,7 @@
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_HiddenArea.shader" />
     <None Include="Assets\Scripts\SteamVR\Resources\SteamVR_Overlay.shader" />
     <None Include="Assets\Scripts\SteamVR\readme.txt" />
+    <None Include="Assets\SteamVR\Resources\SteamVR_SphericalProjection.shader" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\SyntaxTree\UnityVS\2015\UnityVS.CSharp.targets" />
 </Project>

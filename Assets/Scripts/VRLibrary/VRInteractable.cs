@@ -11,6 +11,7 @@ public enum VRInteractedBy : int {
 public enum VRInteractResponse : int {
 	PickUp_Physical,
     PickUp_NonPhysical,
+    Openable,
     DEBUG_scale
 }
 
@@ -24,9 +25,14 @@ public class VRInteractable : MonoBehaviour {
 
     // pick up (and throw) behavior 
     public Transform attachPointOffset;  // how do I position and orient myself relative to the currentInteractor's attachPoint.  if null, no snapping will occur.
-    public float jointBreakForce = 4000f;  // how much force will cause me to let go of this object
+    public float pickUpJointBreakForce = 4000f;  // how much force will cause me to let go of this object
     private Transform originalParent = null;
+    private FixedJoint pickUpJoint;
 
+    // openable behavior
+    private SpringJoint openJoint;
+    public float openJointStrength = 4000f;  // spring force to keep controller attached to openable
+    public float openJointBreakForce = 4000f;  // how much force will cause me to let go of this object
 
     // DEBUG_scaling behavior
     private Vector3 originalScale;
@@ -62,6 +68,10 @@ public class VRInteractable : MonoBehaviour {
                             snap.StartCheckingForSnapTargets();
                         break;
 
+                    case VRInteractResponse.Openable:
+                        AttachOpenableToController();
+                        break;
+
                     case VRInteractResponse.DEBUG_scale:
                         StartScaling();
                         break;
@@ -84,6 +94,11 @@ public class VRInteractable : MonoBehaviour {
                         case VRInteractResponse.PickUp_Physical:
                         case VRInteractResponse.PickUp_NonPhysical:
                             LetGoOfHeldObject(true);
+                            break;
+
+                        case VRInteractResponse.Openable:
+                            UnattachOpenableToController();
+                            UnpairWithInteractor(interactor);
                             break;
 
                         case VRInteractResponse.DEBUG_scale:
@@ -198,29 +213,22 @@ public class VRInteractable : MonoBehaviour {
         }
         else
         {
-            Rigidbody controllerRB = currentInteractor.GetComponent<Rigidbody>();
-            if (controllerRB == null)
-            {
-                Debug.Log("Controller "+currentInteractor+" didn't have a Rigidbody, so adding one. Is that really what we want?");
-                controllerRB = currentInteractor.gameObject.AddComponent<Rigidbody>();
-                controllerRB.isKinematic = true;
-            }
+            Rigidbody controllerRB = GetControllerRigidbody();
 
             if (controllerRB != null)
             {
                 myRigidbody.useGravity = false;  // is this necessary?
 
-                FixedJoint joint = gameObject.GetComponent<FixedJoint>();
-                if (joint != null)
-                {
-                    Debug.LogError(this.gameObject+" already had a FixedJoint on it, so destroying that, but it probs shouldn't have had one?");
-                    DestroyImmediate(joint);
+                if (pickUpJoint != null)
+                { 
+                    Debug.LogError(this.gameObject+ " already had a pickUpJoint on it, so destroying that, but it probs shouldn't have had one?");
+                    DestroyImmediate(pickUpJoint);
                 }
 
-                joint = gameObject.AddComponent<FixedJoint>();
-                joint.breakForce = jointBreakForce;
-                joint.connectedBody = controllerRB;
-                joint.enablePreprocessing = false;
+                pickUpJoint = gameObject.AddComponent<FixedJoint>();
+                pickUpJoint.breakForce = pickUpJointBreakForce;
+                pickUpJoint.connectedBody = controllerRB;
+                pickUpJoint.enablePreprocessing = false;
             }
             else
             {
@@ -258,13 +266,12 @@ public class VRInteractable : MonoBehaviour {
             myRigidbody.useGravity = true;
 
             // break the spring and remove the rb from the controller
-            FixedJoint joint = GetComponent<FixedJoint>();
 //            Rigidbody controllerRB = joint.connectedBody;
 
-            if (joint != null)
-                Destroy(joint);
+            if (pickUpJoint != null)
+                Destroy(pickUpJoint);
             else
-                Debug.LogError(this.gameObject+" didn't have a joint on it, but it should have!");
+                Debug.LogError(this.gameObject+ " didn't have a pickUpJoint on it, but it should have!");
 
             /*  don't remove controller's rigidbody if we had to add it
             if (controllerRB != null)
@@ -290,13 +297,68 @@ public class VRInteractable : MonoBehaviour {
 	}
 
 
-    // pick up / throw behavior 
+    // pick up / throw behavior  AND openable behavior
+    // TODO - this doesn't detect to make sure the correct joint broke 
     void OnJointBreak(float breakForce)
     {
-        LetGoOfHeldObject(false);
+        if (interactResponse == VRInteractResponse.PickUp_Physical)
+            LetGoOfHeldObject(false);
+
+        else if (interactResponse == VRInteractResponse.Openable)
+        {
+            Debug.Log("OnJointBreak called on frame"+Time.frameCount);
+            UnattachOpenableToController();
+        }
+    }
+
+    // pick up / drop  AND  openable behavior
+    private Rigidbody GetControllerRigidbody ()
+    {
+        Rigidbody controllerRB = currentInteractor.GetComponent<Rigidbody>();
+        if (controllerRB == null)
+        {
+            Debug.Log("Controller " + currentInteractor + " didn't have a Rigidbody, so adding one. Is that really what we want?");
+            controllerRB = currentInteractor.gameObject.AddComponent<Rigidbody>();
+            controllerRB.isKinematic = true;
+        }
+
+        return controllerRB;
     }
 
 
+    // Openable behavior
+    // adds a spring between the controller and this object
+    private void AttachOpenableToController ()
+    {
+        if (openJoint != null)
+            Debug.LogError(this.gameObject + " already had an openJoint, but it should not have.");
+
+        openJoint = gameObject.AddComponent<SpringJoint>();
+
+        openJoint.connectedBody = GetControllerRigidbody();
+        openJoint.spring = openJointStrength;
+        openJoint.breakForce = openJointBreakForce;
+        //  this didn't seem to do what i wanted it to.  openJoint.damper = 5f;   // we don't want it to oscilate like a spring, so lots of dampening
+
+//        Debug.Log(this.gameObject+" just paired with "+currentInteractor.gameObject+" by attaching spring "+openJoint+" on frame "+Time.frameCount);
+    }
+
+    // Openable behavior
+    // destroys spring that existed between controller and this object
+    private void UnattachOpenableToController()
+    {
+        if (openJoint == null)
+        {
+            Debug.LogError(this.gameObject + " did not have an openJoint, but it should have had one.");
+            return;
+        }
+
+//        Debug.Log(this.gameObject + " is unpairing with " + currentInteractor.gameObject + " by destroying spring " + openJoint + " on frame " + Time.frameCount);
+
+
+        Destroy(openJoint);
+        openJoint = null;
+    }
 
     // DEBUG_scale behavior
     private void StartScaling ()

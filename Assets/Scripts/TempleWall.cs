@@ -2,7 +2,6 @@
 using System.Collections;
 
 
-[ExecuteInEditMode]
 public class TempleWall : MonoBehaviour {
 
 
@@ -10,11 +9,11 @@ public class TempleWall : MonoBehaviour {
 
     public bool editorUpdateNowTrigger = false;
     public RelativeDirection whichWall;
+
+    // staggering is a disabled, obsolete behavior
     public bool staggerBlocks = true;
-
-    private float staggerMin = -0.03f;
-    private float staggerMax = 0.03f;
-
+//    private float staggerMin = -0.03f;
+//    private float staggerMax = 0.03f;
     private bool staggerBlocksNow = false;
 
     void Start ()
@@ -22,7 +21,7 @@ public class TempleWall : MonoBehaviour {
         if (Application.isPlaying)
         {
             LayoutWall();
-            StaggerBlocks();
+//            StaggerBlocks();
 
             CollectBlocks();
             CheckBlocks();
@@ -53,29 +52,35 @@ public class TempleWall : MonoBehaviour {
     void LayoutWall()
     {
         // move wall to correct location
+
+        EnvironmentManager environment = GameObject.FindObjectOfType<EnvironmentManager>();
+        if (environment == null)
+            Debug.LogError("No object named Environment found. Walls need a master Environment object from which to derive scale info.");
+
         Vector3 newPos = Vector3.zero;
-        float distFromCenter = newPos.z = (EnvironmentManager.floorSize / 2) + (EnvironmentManager.blockThickness / 2); 
+        float distFromCenterX = (environment.floorSizeX / 2) + (EnvironmentManager.blockThickness / 2);
+        float distFromCenterZ = (environment.floorSizeZ / 2) + (EnvironmentManager.blockThickness / 2);
 
         switch (whichWall)
         {
             case RelativeDirection.Front:
-                newPos.z = distFromCenter;
+                newPos.z = distFromCenterZ;
                 transform.rotation = Quaternion.Euler(0, 0, 0);
                 break;
 
             case RelativeDirection.Back:
-                newPos.z = -distFromCenter;
+                newPos.z = -distFromCenterZ;
                 transform.rotation = Quaternion.Euler(0, 180, 0);
                 break;
 
             case RelativeDirection.Right:
-                newPos.x = distFromCenter;
+                newPos.x = distFromCenterX;
                 newPos.z = 0;
                 transform.rotation = Quaternion.Euler(0, 90, 0);
                 break;
 
             case RelativeDirection.Left:
-                newPos.x = -distFromCenter;
+                newPos.x = -distFromCenterX;
                 newPos.z = 0;
                 transform.rotation = Quaternion.Euler(0, 270, 0);
                 break;
@@ -92,11 +97,14 @@ public class TempleWall : MonoBehaviour {
     {
         if (staggerBlocks)
         {
+            Debug.Log("Stagger blocks behavior is disabled");
+            /*
             foreach (Transform child in transform)
             {
                 child.transform.position = new Vector3(child.transform.position.x, child.transform.position.y, 0f);
                 child.Translate(Vector3.forward * Random.Range(staggerMin, staggerMax), Space.Self);
             }
+            */
         }
     }
 
@@ -282,21 +290,48 @@ public class TempleWall : MonoBehaviour {
     }
 
 
-    public bool PositionIsTop (WallBlockPosition wallPos)
+    public static bool PositionIsTop (WallBlockPosition wallPos)
     {
         return ((wallPos == WallBlockPosition.TopCenter) || (wallPos == WallBlockPosition.TopLeft) || (wallPos == WallBlockPosition.TopRight));
     }
 
-    public bool PositionIsMiddle (WallBlockPosition wallPos)
+    public static bool PositionIsMiddle (WallBlockPosition wallPos)
     {
         return ((wallPos == WallBlockPosition.MiddleCenter) || (wallPos == WallBlockPosition.MiddleLeft) || (wallPos == WallBlockPosition.MiddleRight));
     }
 
-    public bool PositionIsBottom (WallBlockPosition wallPos)
+    public static bool PositionIsBottom (WallBlockPosition wallPos)
     {
         return ((wallPos == WallBlockPosition.BottomCenter) || (wallPos == WallBlockPosition.BottomLeft) || (wallPos == WallBlockPosition.BottomRight));
 
     }
 
+    public int BlockCount (WallBlockType blockType)
+    {
+        int toReturn = 0;
+
+        if (topLeft.blockType == blockType)
+            toReturn++;
+        if (topCenter.blockType == blockType)
+            toReturn++;
+        if (topRight.blockType == blockType)
+            toReturn++;
+
+        if (middleLeft.blockType == blockType)
+            toReturn++;
+        if (middleCenter.blockType == blockType)
+            toReturn++;
+        if (middleRight.blockType == blockType)
+            toReturn++;
+
+        if (bottomLeft.blockType == blockType)
+            toReturn++;
+        if (bottomCenter.blockType == blockType)
+            toReturn++;
+        if (bottomRight.blockType == blockType)
+            toReturn++;
+
+        return toReturn;
+    }
 
 }

@@ -17,6 +17,7 @@ public class TempleWallBlock : MonoBehaviour {
     private float nextStateTime;
 
     public GameObject emergeFXPrefab;
+    public AudioClip emergeSFX;
 
 
 
@@ -45,6 +46,17 @@ public class TempleWallBlock : MonoBehaviour {
         }
     }
 
+    // by default when the environment is scaled, blocks only scale themselves along the x axis (their width in the wall) but not y (height) or z (depth in the wall)
+    public virtual void ScaleSelf (Vector3 scale)
+    {
+        Vector3 newScale = new Vector3();
+
+        newScale.x = transform.localScale.x * scale.x;
+        newScale.y = transform.localScale.y;
+        newScale.z = transform.localScale.z;
+
+        transform.localScale = newScale;
+    }
 
     protected virtual void Update()
     {
@@ -61,6 +73,15 @@ public class TempleWallBlock : MonoBehaviour {
         CodeTools.CopyTransform(transform, fx.transform, true, true, false);
         fx.transform.parent = transform;
         Destroy(fx, (GameplayManager.blockEmergeDuration + 2f));
+
+        AudioSource audio = GetComponent<AudioSource>();
+        if ((emergeSFX != null) && (audio!=null))
+        {
+            audio.clip = emergeSFX;
+            audio.PlayOneShot(emergeSFX,0.3f);
+        }
+
+
     }
 
 

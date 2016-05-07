@@ -5,13 +5,18 @@ public class GameplayManager : MonoBehaviour {
 
     public EnvironmentManager environmentManager;
 
+    public int trapCount, alcoveCount;
     public Slot[] goalSlots;
     public SnapToPosition[] goalPieces;
     public SnapToPosition readyForInsertion;
     public BoxCollider limbo; // this is where important props live when they are not in the player-accesible scene
 
+    public bool DEBUG_angledTopArrow = false;
+
     public float timeBetweenBlocks = 15f;
     private float timeNextBlock;
+    public float maxTimeTilGoalObject = 60f; // time in seconds before the chance of a goal object showing up = 100%
+    private float timeOfLastGoalObject = 0f;
 
     static public float blockEmergeDuration = 6f;  // how many seconds it takes from when blocks first start emerging to when they complete the emerging process.
 
@@ -53,20 +58,46 @@ public class GameplayManager : MonoBehaviour {
 
         WallBlockType nextBlockType;
 
-        if (Random.Range(0, 2) == 0)
-            nextBlockType = DEBUG_blockType1;
+        if (DEBUG_blockType1 != WallBlockType.NONE)
+        {
+            if (Random.Range(0, 2) == 0)
+                nextBlockType = DEBUG_blockType1;
+            else
+                nextBlockType = DEBUG_blockType2;
+        }
         else
-            nextBlockType = DEBUG_blockType2;
+        {
+            if (Random.Range(1, (trapCount + alcoveCount + 3)) < (trapCount + 1))
+                nextBlockType = WallBlockType.Alcove;
+            else
+                nextBlockType = WallBlockType.ArrowTrap;
+        }
 
 
-        RelativeDirection wallDir = environmentManager.RandomRelativeDirection();
-        WallBlockPosition blockPos = environmentManager.RandomWallBlockPosition();
+        bool weirdTrapThisTime = (Random.Range(0f, 1f) < 0.2f) ? true : false;
+
+        DEBUG_angledTopArrow = weirdTrapThisTime;
+
+        RelativeDirection wallDir = EnvironmentManager.RandomRelativeDirection();
+        WallBlockPosition blockPos = EnvironmentManager.RandomWallBlockPosition();
+
+        if ((!weirdTrapThisTime) && (nextBlockType == WallBlockType.ArrowTrap) && (TempleWall.PositionIsBottom(blockPos)) )
+        {
+            while (TempleWall.PositionIsBottom(blockPos))
+                blockPos = EnvironmentManager.RandomWallBlockPosition();
+        }
 
         int tries = 0;
         while ((!environmentManager.DoesItFit(nextBlockType, wallDir, blockPos)) && (tries < 100))
         {
-            wallDir = environmentManager.RandomRelativeDirection();
-            blockPos = environmentManager.RandomWallBlockPosition();
+            wallDir = EnvironmentManager.RandomRelativeDirection();
+            blockPos = EnvironmentManager.RandomWallBlockPosition();
+            if ((!weirdTrapThisTime) && (nextBlockType == WallBlockType.ArrowTrap) && (TempleWall.PositionIsBottom(blockPos)))
+            {
+                while (TempleWall.PositionIsBottom(blockPos))
+                    blockPos = EnvironmentManager.RandomWallBlockPosition();
+            }
+
             tries++;
         }
 
@@ -74,10 +105,16 @@ public class GameplayManager : MonoBehaviour {
             return;
 
         // decide whether to impose any prop spawns 
-        if ((nextBlockType == WallBlockType.Alcove) && (Random.Range(0f, 1f) < 0.5f))
+        // this is super TMP chance for now
+        float percentChance = ((Time.time-timeOfLastGoalObject) / (timeOfLastGoalObject + maxTimeTilGoalObject));
+
+        if ((nextBlockType == WallBlockType.Alcove) && (Random.Range(0f, 1f) < percentChance))
         {
             if (!NothingInLimbo())
+            {
                 readyForInsertion = RandomAvailableGoalPiece();
+                timeOfLastGoalObject = Time.time;
+            }
 //            else
  //               Debug.Log("Can't impose goal spawns because nothing is in limbo."); 
                
@@ -85,7 +122,8 @@ public class GameplayManager : MonoBehaviour {
 
         environmentManager.SpawnBlock(nextBlockType, wallDir, blockPos);
 
-
+        trapCount = environmentManager.BlockCount(WallBlockType.ArrowTrap);
+        alcoveCount = environmentManager.BlockCount(WallBlockType.Alcove);
     }
 
     // returns true iff the transform of goalPieces[ the passed-in index] is within the bounds of the Limbo boxcollider

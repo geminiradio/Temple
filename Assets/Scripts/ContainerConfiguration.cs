@@ -11,8 +11,10 @@ public class ContainerConfiguration : MonoBehaviour {
 
     public float[] goalSpots_randWeights;  // if a goal object is selected to be placed in here, where should it go?
 
+    private EnvironmentManager environment;
+    private GameplayManager gameplayManager;
 
-    void Start ()
+    void Awake ()
     {
         CodeTools.ValidateWeightedRandomArray(spots_randWeights, objectSpots.Length);
         CodeTools.ValidateWeightedRandomArray(goalSpots_randWeights, objectSpots.Length);
@@ -27,9 +29,18 @@ public class ContainerConfiguration : MonoBehaviour {
 
         }
 
+        environment = GameObject.FindObjectOfType<EnvironmentManager>();
+        if (environment == null)
+            Debug.LogError("EnvironmentManager not found.");
+
+        gameplayManager = GameObject.FindObjectOfType<GameplayManager>();
+        if (gameplayManager == null)
+            Debug.LogError("GameplayManager not found!");
+
     }
 
     // called by external scripts to select a procedural config for this container
+    // TODO - this whole thing is garbage and needs to be rewritten, maybe when i know more about what GameplayManager wants to do
     public void InitializeContainerConfiguration ()
     {
         // figure out which objectSpots we're going to use
@@ -38,21 +49,13 @@ public class ContainerConfiguration : MonoBehaviour {
         if (indices.Count == 0)
             return;
 
-        GameplayManager gm = GameObject.FindObjectOfType<GameplayManager>();
-
-        if (gm == null)
-        {
-            Debug.LogError("GameplayManager not found!");
-            return;
-        }
-
         int usedByGoalObject = -1;
-        if (gm.readyForInsertion != null)
+        if (gameplayManager.readyForInsertion != null)
         {
             usedByGoalObject = GetIndexForGoalObject();
-            CodeTools.CopyTransform(objectSpots[usedByGoalObject].transform, gm.readyForInsertion.transform, true, true, false);
-            Debug.Log(gm.readyForInsertion + " teleported to newly-emerging alcove.");
-            gm.readyForInsertion = null;
+            CodeTools.CopyTransform(objectSpots[usedByGoalObject].transform, gameplayManager.readyForInsertion.transform, true, true, false);
+            Debug.Log(gameplayManager.readyForInsertion + " teleported to newly-emerging alcove.");
+            gameplayManager.readyForInsertion = null;
         }
 
         // spawn treasures at each of those spots
@@ -62,17 +65,49 @@ public class ContainerConfiguration : MonoBehaviour {
             {
                 GameObject spot = objectSpots[index].gameObject;
                 TreasureTable tt = TreasureTable.FindTreasureTable(spot);
-                GameObject treasurePrefab = null;
                 if (tt == null)
                     Debug.LogError("No TreasureTable found on " + spot + " nor any of its ancestors.");
-                else
+
+                // pick a treasure that fits in the chosen spot
+                // TODO - this logic should go more like:  there's a method that finds an unused spot this treasure will fit and puts it there.  iterating over treasures, not spots.
+
+                GameObject treasurePrefab = null;
+                bool itFitsHere = false;
+                int tries = 0;
+                GameObject newTreasure = null;
+
+                while ((!itFitsHere) && (tries < 20))  // TODO - this is an unacceptable amount of sweeptests for performance
+                {
+                    tries++;
+
                     treasurePrefab = tt.GetRandomTreasure();
+                    newTreasure = (GameObject)Instantiate(treasurePrefab) as GameObject;
+                    CodeTools.CopyTransform(spot.transform, newTreasure.transform, false, true, false);  // rotate the object to match the spot
 
-                GameObject newTreasure = (GameObject)Instantiate(treasurePrefab) as GameObject;
-                CodeTools.CopyTransform(spot.transform, newTreasure.transform);
+                    itFitsHere = CodeTools.TestForCollision(newTreasure, spot.transform.position);
 
-                // parent this new object with my parent, since my parent is presumably the container
-                newTreasure.transform.parent = transform.parent;
+                    if (itFitsHere)
+                    {
+                        Debug.Log(newTreasure + " fits without collision at " + newTreasure.transform.position);
+                    }
+                    else
+                    {
+                        Debug.Log(newTreasure + " does not fit at " + newTreasure.transform.position);
+                        DestroyImmediate(newTreasure);  // TODO - needless to say this is terrible
+                    }
+                }
+
+                if (itFitsHere)
+                {
+                    // now you can teleport it there
+                    CodeTools.CopyTransform(spot.transform, newTreasure.transform, true, true, false);
+                    newTreasure.transform.parent = (environment.propsFolder != null) ? environment.propsFolder.transform : null;
+                }
+                else
+                {
+                    Debug.LogError("Couldn't find any treasures that will fit in spot "+spot.gameObject+" which is at "+spot.transform.position);
+                }
+
             }
         }
 
