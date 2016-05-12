@@ -36,13 +36,8 @@ public class SnapToPosition : MonoBehaviour {
         if (positionTolerance.Length != 3) 
             Debug.LogError("positionTolerance must be an array of size 3, where element 0 defines X tolerance, element 1 defines Y tolerance, and element 2 defines Z tolerance.");
 
-        MinMaxValues notMoreThanZero = new MinMaxValues();
-        notMoreThanZero.min = -999f;
-        notMoreThanZero.max = 0f;
-
-        MinMaxValues notLessThanZero = new MinMaxValues();
-        notLessThanZero.min = 0f;
-        notLessThanZero.max = 999f;
+        MinMaxValues notMoreThanZero = new MinMaxValues(-999f,0f);
+        MinMaxValues notLessThanZero = new MinMaxValues(0f, 999f);
 
         CodeTools.ValidateMinMaxArray(positionTolerance, notMoreThanZero, notLessThanZero);
 

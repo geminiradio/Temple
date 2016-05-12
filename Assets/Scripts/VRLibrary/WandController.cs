@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public enum ButtonState : int
 {
@@ -11,11 +12,22 @@ public enum ButtonState : int
 
 public class WandController : MonoBehaviour {
 
+    public enum DEBUG_action : int
+    {
+        NONE,
+        DEBUG_PausePlayer
+    }
+
+    public DEBUG_action DEBUG_Action = DEBUG_action.NONE;
+
 	public bool triggerDown = false;
 	public bool triggerUp = false;
 	public bool triggerPressed = false;
+    public bool menuDown = false;
+    public bool menuUp = false;
+    public bool menuPressed = false;
 
-	public VRInteractable currentSelection = null;   // what interactable is the wand controller currently touching (eg - for possible future interaction)? this variable is managed by this class     TODO this should probs be a list of all such interactables?
+    public List<VRInteractable> currentSelection;   // what interactables is the wand controller currently touching (eg - for possible future interaction)? this variable is managed by this class   
     public VRInteractable currentInteractable = null;  // what interactable is the wand controller currently paired with for interaction, eg - object being carried.  this is always set by the target interactable, not by this class
 
     public SphereCollider interactPoint;  // this is the trigger that this controller uses to detect collisions with other objects
@@ -26,7 +38,7 @@ public class WandController : MonoBehaviour {
     public SteamVR_Controller.Device controller { get { return SteamVR_Controller.Input((int)trackedObj.index); } }
     private SteamVR_TrackedObject trackedObj;
     private Valve.VR.EVRButtonId trigger = Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger;
-
+    private Valve.VR.EVRButtonId menuButton = Valve.VR.EVRButtonId.k_EButton_ApplicationMenu;
 
 	void Start () {
 
@@ -52,6 +64,8 @@ public class WandController : MonoBehaviour {
             attachPoint = transform;
         }
 
+        currentSelection = new List<VRInteractable>();
+
     }
 	
 
@@ -65,6 +79,9 @@ public class WandController : MonoBehaviour {
 		triggerDown = controller.GetPressDown (trigger);
 		triggerUp = controller.GetPressUp (trigger);
 		triggerPressed = controller.GetPress (trigger);
+        menuDown = controller.GetPressDown(menuButton);
+        menuUp = controller.GetPressUp(menuButton);
+        menuPressed = controller.GetPress(menuButton);
 
         ButtonState triggerState;
         if (triggerDown)
@@ -76,19 +93,40 @@ public class WandController : MonoBehaviour {
         else
             triggerState = ButtonState.Up;
 
-        // if we are paired with an interactable, send all messages there, regardless of who the current selection is
+        // if we are paired with an interactable, first send Update messages there, regardless of who the current selection is
         if (currentInteractable != null)
         {
             currentInteractable.InteractedWith(this, triggerState);
         }
-        // otherwise, send messages to the current selection
-        else if (currentSelection != null)
+
+        // next send messages to the current set of selections
+        // we iterate in reverse starting at the end so we can legally remove items from the list as we go
+        for (int i = currentSelection.Count-1; i >= 0; i--)
         {
-            currentSelection.InteractedWith(this, triggerState);
+            if (currentSelection[i] == null)
+                currentSelection.RemoveAt(i);
+            else if (currentSelection[i].gameObject == null) 
+                currentSelection.RemoveAt(i);
+            else if (!currentSelection[i].gameObject.activeInHierarchy)
+                currentSelection.RemoveAt(i);
+            else
+                currentSelection[i].InteractedWith(this, triggerState);
+
         }
 
 
-	}
+
+        if ((menuDown) && (DEBUG_Action != DEBUG_action.NONE))
+        {
+            if (DEBUG_Action == DEBUG_action.DEBUG_PausePlayer)
+            {
+                Debug.Break();
+            }
+
+        }
+
+
+    }
 
     // this is called by an interactable when it decides to pair with this controller
     public bool PairWithInteractable (VRInteractable interactable)
@@ -116,42 +154,22 @@ public class WandController : MonoBehaviour {
         return true;
     }
 
-    // returns the VRInteractable component on the passed-in collider, one of its ancestors, or null
-    private VRInteractable GetInteractableFromCollider (Collider col)
-    {
-        VRInteractable toReturn = col.gameObject.GetComponent<VRInteractable>();
 
-        if (toReturn != null)
-            return toReturn;
-
-        GameObject ancestor = null;
-        Transform at = col.gameObject.transform.parent;
-        if (at != null)
-            ancestor = at.gameObject;
-
-        while ((toReturn == null) && (at != null))
-        {
-            toReturn = ancestor.GetComponent<VRInteractable>();
-            at = ancestor.transform.parent;
-            if (at != null)
-                ancestor = at.gameObject;
-        }
-
-        return toReturn;
-    }
 
     // tracks currentInteractable as the wand passes through qualifying objects
     void OnTriggerEnter (Collider other)
 	{
-        VRInteractable collidedInteractable = GetInteractableFromCollider(other);
+        VRInteractable collidedInteractable = CodeTools.GetComponentFromNearestAncestor<VRInteractable>(other.gameObject);
 
         if (collidedInteractable != null)
 		{
-            currentSelection = collidedInteractable;
+            // if we don't already have this interactable on our list of ones we're selecting, then add it
+            if (!currentSelection.Contains(collidedInteractable))
+                currentSelection.Add(collidedInteractable);
 
             if (currentInteractable != null)
-                if (currentSelection != currentInteractable)
-                    Debug.Log(this+" just selected "+currentSelection.gameObject+", but my currentInteractable is "+currentInteractable.gameObject+", probably you just pushed the current interactable through something else.");				
+                if (collidedInteractable != currentInteractable)
+                    Debug.Log(this+" just selected "+ collidedInteractable.gameObject+", but my currentInteractable is "+currentInteractable.gameObject+", probably you just pushed the current interactable through something else.");				
 		}
 		else
 		{
@@ -165,22 +183,13 @@ public class WandController : MonoBehaviour {
     // tracks currentInteractable as the wand passes through qualifying objects
     void OnTriggerStay (Collider other)
     {
-        VRInteractable collidedInteractable = GetInteractableFromCollider(other);
+        VRInteractable collidedInteractable = CodeTools.GetComponentFromNearestAncestor<VRInteractable>(other.gameObject);
 
         if (collidedInteractable != null)
         {
-            if (currentSelection != null)
+            if (!currentSelection.Contains(collidedInteractable))
             {
-                if (currentSelection != collidedInteractable)
-                {
-                    Debug.Log("Wand is colliding with " + collidedInteractable.gameObject + ", but the current selection is " + currentSelection.gameObject +". Probably two colliders are overlapping.");
-                }
-            }
-            else
-            {
-                // this interactor is colliding with collidedInteractable, but it has no current selection
-                // (i think) this case happens when >1 colliders overlap and this current collider got onenter when some other collider was the current selection, but that other collider got onexit, so now this one could become the currentSelection
-                currentSelection = collidedInteractable;
+                Debug.LogError(this.gameObject + " wand is OnTriggerStay() colliding with " + collidedInteractable.gameObject + " but it's not on the currentSelection list, but it should be!");
             }
         }
 
@@ -190,19 +199,20 @@ public class WandController : MonoBehaviour {
     // tracks currentInteractable as the wand passes through qualifying objects
     void OnTriggerExit (Collider other)
 	{
-		VRInteractable collidedInteractable = GetInteractableFromCollider(other);
+		VRInteractable collidedInteractable = CodeTools.GetComponentFromNearestAncestor<VRInteractable>(other.gameObject);
 
         if (collidedInteractable == null)
 			return;
 
-		if (currentSelection != null)
+		if (currentSelection.Contains(collidedInteractable))
 		{
-			if (currentSelection == collidedInteractable)
-			{
-				currentSelection = null;
-			}
+            currentSelection.Remove(collidedInteractable);
 		}
-	}
+        else
+        {
+            Debug.LogError(this.gameObject + " wand called OnTriggerExit() with " + collidedInteractable.gameObject + " but it's not on the currentSelection list, but it should be!");
+        }
+    }
 
 
     public Vector3 GetInteractPointPosition ()

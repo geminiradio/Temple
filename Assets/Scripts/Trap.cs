@@ -5,7 +5,7 @@ public class Trap : TempleWallBlock {
 
     public bool oneShot = true;
     public Collider triggerVolume;
-    public RandomizeSFX triggerSFX;
+    public RandomizedSFX triggerSFX;
 
     public bool DEBUG_TriggerNow = false;
     private int triggerCount = 0;
@@ -72,7 +72,7 @@ public class Trap : TempleWallBlock {
     // by default, traps are triggered every frame the player is inside their TriggerVolume
     protected virtual void OnTriggerStay(Collider col)
     {
-        if (col.gameObject.name == "Player")
+        if (col.gameObject.name == "PlayerCollider")  // TODO - this should be done using physics layers instead - trap trigger volumes & things that set them off
         {
             // TODO - there is no way w/ OnTriggerEnter to make sure it was TriggerVolume that was the specific trigger (in case there are more than one trigger in the children of the trap object)
             if (Trigger())

@@ -33,30 +33,7 @@ public class TreasureTable : MonoBehaviour {
         return toReturn;
     }
 
-    // finds the closest TreasureTable component on the passed-in go or its ancestors
-    // TODO - it also check on the children of those objects - ie - one way to add a TreasureTable to an object is to drag the prefab on to it 
-    // or returns null if none found
-    public static TreasureTable FindTreasureTable (GameObject go)
-    {
-        TreasureTable tt = null;
 
-        Transform current = null;
-
-        if (go != null)
-            current = go.transform;
-
-        while ((tt == null) && (current != null))
-        {
-            tt = current.GetComponent<TreasureTable>();
-            if (tt == null)
-                current = current.parent;
-        }
-
-        if (current == null)
-            return null;
-
-        return tt;
-    }
 
 
 }
