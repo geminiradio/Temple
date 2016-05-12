@@ -82,7 +82,7 @@
     <Compile Include="Assets\Scripts\EnvironmentManager.cs" />
     <Compile Include="Assets\Scripts\GameplayManager.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
-    <Compile Include="Assets\Scripts\RandomizeSFX.cs" />
+    <Compile Include="Assets\Scripts\RandomizedSFX.cs" />
     <Compile Include="Assets\Scripts\Slot.cs" />
     <Compile Include="Assets\Scripts\SnapToPosition.cs" />
     <Compile Include="Assets\Scripts\SteamVR\Extras\SteamVR_GazeTracker.cs" />
@@ -116,6 +116,8 @@
     <Compile Include="Assets\Scripts\SteamVR\Scripts\SteamVR_TrackedObject.cs" />
     <Compile Include="Assets\Scripts\SteamVR\Scripts\SteamVR_UpdatePoses.cs" />
     <Compile Include="Assets\Scripts\SteamVR\Scripts\SteamVR_Utils.cs" />
+    <Compile Include="Assets\Scripts\StimReactor.cs" />
+    <Compile Include="Assets\Scripts\Stimulus.cs" />
     <Compile Include="Assets\Scripts\TempleWall.cs" />
     <Compile Include="Assets\Scripts\TempleWallBlock.cs" />
     <Compile Include="Assets\Scripts\Trap.cs" />

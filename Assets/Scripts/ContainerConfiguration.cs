@@ -24,7 +24,7 @@ public class ContainerConfiguration : MonoBehaviour {
 
         foreach (Transform spot in objectSpots)
         {
-            if (TreasureTable.FindTreasureTable(spot.gameObject) == null)
+            if (CodeTools.GetComponentFromNearestAncestor<TreasureTable>(spot.gameObject) == null)
                 Debug.LogError("No TreasureTable found on " + spot.gameObject + " nor any of its ancestors.");
 
         }
@@ -36,6 +36,14 @@ public class ContainerConfiguration : MonoBehaviour {
         gameplayManager = GameObject.FindObjectOfType<GameplayManager>();
         if (gameplayManager == null)
             Debug.LogError("GameplayManager not found!");
+
+        GameObject collisionMarkers;
+        collisionMarkers = GameObject.Find("CollisionMarkers");
+        if (collisionMarkers == null)
+            collisionMarkers = new GameObject("CollisionMarkers");
+
+        if (environment.propsFolder != null)
+            collisionMarkers.transform.parent = environment.propsFolder.transform;
 
     }
 
@@ -54,7 +62,7 @@ public class ContainerConfiguration : MonoBehaviour {
         {
             usedByGoalObject = GetIndexForGoalObject();
             CodeTools.CopyTransform(objectSpots[usedByGoalObject].transform, gameplayManager.readyForInsertion.transform, true, true, false);
-            Debug.Log(gameplayManager.readyForInsertion + " teleported to newly-emerging alcove.");
+//            Debug.Log(gameplayManager.readyForInsertion + " teleported to newly-emerging alcove.");
             gameplayManager.readyForInsertion = null;
         }
 
@@ -64,7 +72,7 @@ public class ContainerConfiguration : MonoBehaviour {
             if (index != usedByGoalObject)  // if a goal object has been placed in this slot, then skip it
             {
                 GameObject spot = objectSpots[index].gameObject;
-                TreasureTable tt = TreasureTable.FindTreasureTable(spot);
+                TreasureTable tt = CodeTools.GetComponentFromNearestAncestor<TreasureTable>(spot);
                 if (tt == null)
                     Debug.LogError("No TreasureTable found on " + spot + " nor any of its ancestors.");
 
@@ -88,11 +96,13 @@ public class ContainerConfiguration : MonoBehaviour {
 
                     if (itFitsHere)
                     {
-                        Debug.Log(newTreasure + " fits without collision at " + newTreasure.transform.position);
+                        Debug.Log(newTreasure + " fits without collision at " + spot.transform.position);
+                        if (spot.transform.position == Vector3.zero)
+                            Debug.Log("Why is it zero?");
                     }
                     else
                     {
-                        Debug.Log(newTreasure + " does not fit at " + newTreasure.transform.position);
+                        Debug.Log(newTreasure + " does not fit at " + spot.transform.position);
                         DestroyImmediate(newTreasure);  // TODO - needless to say this is terrible
                     }
                 }

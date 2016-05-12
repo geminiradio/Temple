@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+
 public class GameplayManager : MonoBehaviour {
 
     public EnvironmentManager environmentManager;
@@ -74,7 +75,7 @@ public class GameplayManager : MonoBehaviour {
         }
 
 
-        bool weirdTrapThisTime = (Random.Range(0f, 1f) < 0.2f) ? true : false;
+        bool weirdTrapThisTime = (Random.Range(0f, 1f) < 0.8f) ? true : false;
 
         DEBUG_angledTopArrow = weirdTrapThisTime;
 

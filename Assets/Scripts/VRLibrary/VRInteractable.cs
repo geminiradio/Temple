@@ -2,7 +2,7 @@
 using System.Collections;
 
 // what inputs does this object respond to
-// TODO this should totes be a bitfield
+// note that VRInteractable scripts already get called each frame that a controller is making contact with their triggers, so that's implicit
 public enum VRInteractedBy : int {
 	WandTrigger
 }
@@ -12,6 +12,7 @@ public enum VRInteractResponse : int {
 	PickUp_Physical,
     PickUp_NonPhysical,
     Openable,
+    InventoryHotspot,
     DEBUG_scale
 }
 
@@ -19,7 +20,7 @@ public enum VRInteractResponse : int {
 
 public class VRInteractable : MonoBehaviour {
 
-	public VRInteractedBy interactInput;    // what inputs do i respond to
+	public VRInteractedBy interactInput;    // what inputs do i respond to - TODO: this should be an array
 	public VRInteractResponse interactResponse;   // how do i respond
 	public WandController currentInteractor;   // what input is currently interacting w/ me   (eg - the specific wand controller)
 
@@ -34,6 +35,12 @@ public class VRInteractable : MonoBehaviour {
     public float openJointStrength = 4000f;  // spring force to keep controller attached to openable
     public float openJointBreakForce = 4000f;  // how much force will cause me to let go of this object
 
+    // inventory hotspot behavior
+    public VRInteractable inventoryItem;  // relevant to the inventory SLOT instance of this script (they point to each other)
+    private VRInteractable inventorySlot;  // relevant to the inventory ITEM instance of this script (they point to each other)
+    private WandController whoLastHadMyInventoryItem;  // tracked by the inventory item instance of this script
+
+
     // DEBUG_scaling behavior
     private Vector3 originalScale;
     private float originalInteractorY;
@@ -44,6 +51,23 @@ public class VRInteractable : MonoBehaviour {
     {
         // pick up / throw behavior
         originalParent = this.transform.parent;
+
+        // inventory hotspot behavior
+        if (interactResponse == VRInteractResponse.InventoryHotspot)
+        {
+            if (inventoryItem == null)
+            {
+                Debug.LogError("No inventory item assigned for inventory hotspot " + this.gameObject);
+            }
+            else
+            {
+                if ((inventoryItem.interactResponse != VRInteractResponse.PickUp_NonPhysical) && (inventoryItem.interactResponse != VRInteractResponse.PickUp_Physical))
+                    Debug.LogError("InventoryItem "+inventoryItem.gameObject+" must have interactResponse set to a PickUp value.");
+
+                inventoryItem.inventorySlot = this;
+            }
+        }
+
     }
 
 
@@ -54,30 +78,48 @@ public class VRInteractable : MonoBehaviour {
 
         if (currentInteractor == null)
         {
+            if (interactResponse == VRInteractResponse.InventoryHotspot)
+                interactor.controller.TriggerHapticPulse(3999);
+
             if (triggerState == ButtonState.JustPressed)
             {
-                PairWithInteractor(interactor);
-
                 switch (interactResponse)
                 {
                     case VRInteractResponse.PickUp_Physical:
                     case VRInteractResponse.PickUp_NonPhysical:
-                        GetPickedUp();
-                        SnapToPosition snap = GetComponent<SnapToPosition>();
-                        if (snap != null)
-                            snap.StartCheckingForSnapTargets();
+                        GetPickedUp(interactor);
                         break;
 
                     case VRInteractResponse.Openable:
+                        PairWithInteractor(interactor);
                         AttachOpenableToController();
                         break;
 
+                    case VRInteractResponse.InventoryHotspot:
+                        if ((interactor.currentInteractable == null) && (!inventoryItem.gameObject.activeInHierarchy))
+                           TakeFromInventoryHotspot(interactor);
+                        break;
+
                     case VRInteractResponse.DEBUG_scale:
+                        PairWithInteractor(interactor);
                         StartScaling();
                         break;
+
                 }
 
-            }
+            } // triggerState == just pressed
+
+            else if (triggerState == ButtonState.JustReleased)
+            {
+                switch (interactResponse)
+                {
+                    case VRInteractResponse.InventoryHotspot:
+                        // this check is a little complicated due to race conditions - necessarily the inventory item was dropped just before this was called, so it's now in freefall and logically unattached to this script, same as if it were dropped on the ground
+                        if ((interactor == whoLastHadMyInventoryItem) && (IsInsideCollider(inventoryItem.gameObject)))
+                            ReturnToInventoryHotspot();
+                        break;
+                }
+            } // triggerState == just released
         }
         else  // currentInteractor is not null
         {
@@ -93,7 +135,7 @@ public class VRInteractable : MonoBehaviour {
                     {
                         case VRInteractResponse.PickUp_Physical:
                         case VRInteractResponse.PickUp_NonPhysical:
-                            LetGoOfHeldObject(true);
+                            GetDropped(true);
                             break;
 
                         case VRInteractResponse.Openable:
@@ -135,7 +177,7 @@ public class VRInteractable : MonoBehaviour {
             case VRInteractResponse.PickUp_Physical:
             case VRInteractResponse.PickUp_NonPhysical:
                 // this assumes it was a SnapToTarget that called this method, in which case you don't have to tell it to stop checking for snap targets, because it already called that method on itself
-                GetDropped(false);
+                UnattachHeldObject(false);
                 UnpairWithInteractor(currentInteractor);
                 break;
         }
@@ -174,21 +216,51 @@ public class VRInteractable : MonoBehaviour {
     }
 
 
-    // for pick up / throw behavior - one method that encapsulates all the things you do when you release a held object
-    private void LetGoOfHeldObject(bool applyThrowForce)
+    // for pick up / throw behavior - one method that encapsulates all the things you do when you pick up a held object
+    private void GetPickedUp (WandController interactor)
     {
-        GetDropped(applyThrowForce);
+        if (currentInteractor != null)
+        {
+            Debug.LogError(interactor.gameObject+" is picking up "+this.gameObject+", but it's already paired with "+currentInteractor.gameObject);
+        }
 
+        PairWithInteractor(interactor);
+        AttachHeldObject();
+
+        // TODO - should the following types of things be inside or at least dependant on the return value of PairWithInteractor() ?
         SnapToPosition snap = GetComponent<SnapToPosition>();
         if (snap != null)
-            snap.StopCheckingForSnapTargets();
+            snap.StartCheckingForSnapTargets();
 
-        UnpairWithInteractor(currentInteractor);
+        if (inventorySlot != null)
+            inventorySlot.whoLastHadMyInventoryItem = interactor;
+
+    }
+
+    // for pick up / throw behavior - one method that encapsulates all the things you do when you release a held object
+    public void GetDropped (bool applyThrowForce)
+    {
+        // don't do this if i'm not currently held, 
+        // important since this method can be called externally, ie - by an inventory slot or when this obj gets broken,  and there might be race conditions to handle
+        if (currentInteractor != null)
+        {
+            UnattachHeldObject(applyThrowForce);
+
+            SnapToPosition snap = GetComponent<SnapToPosition>();
+            if (snap != null)
+                snap.StopCheckingForSnapTargets();
+
+            UnpairWithInteractor(currentInteractor);
+        }
+//        else
+//        {
+//            Debug.Log("Race condition handled correctly by "+this.gameObject);
+//        }
     }
 
 
     // for pick up / throw behavior
-    private void GetPickedUp ()
+    private void AttachHeldObject ()
 	{
 		Rigidbody myRigidbody = GetComponent<Rigidbody>();
         if (myRigidbody == null)
@@ -239,14 +311,14 @@ public class VRInteractable : MonoBehaviour {
 		
 	}
 
-    // by default when GetDropped is called, it applies a throw impulse 
-    private void GetDropped ()
+    // by default when UnattachHeldObject is called, it applies a throw impulse 
+    private void UnattachHeldObject()
     {
-        GetDropped(true);
+        UnattachHeldObject(true);
     }
 
     // for pick up / throw behavior
-    private void GetDropped (bool applyThrowImpulse)
+    private void UnattachHeldObject (bool applyThrowImpulse)
 	{
 
         Rigidbody myRigidbody = GetComponent<Rigidbody>();
@@ -302,7 +374,7 @@ public class VRInteractable : MonoBehaviour {
     void OnJointBreak(float breakForce)
     {
         if (interactResponse == VRInteractResponse.PickUp_Physical)
-            LetGoOfHeldObject(false);
+            GetDropped(false);
 
         else if (interactResponse == VRInteractResponse.Openable)
         {
@@ -359,6 +431,45 @@ public class VRInteractable : MonoBehaviour {
         Destroy(openJoint);
         openJoint = null;
     }
+
+
+    // inventory hotspot behavior
+    private void DisableToGoIntoInventory(VRInteractable item)
+    {
+        item.gameObject.SetActive(false);
+    }
+
+    // inventory hotspot behavior
+    private void EnableToComeFromInventory(VRInteractable item)
+    {
+        item.gameObject.SetActive(true);
+    }
+
+    // inventory hotspot behavior
+    // TODO - assumes all inventory slots are spheres are that they are scaled equally in all dimensions
+    private bool IsInsideCollider (GameObject go)
+    {
+        SphereCollider collider = GetComponent<SphereCollider>();
+//        Debug.Log(" Distance from "+go+" to "+collider.gameObject+" = "+ Vector3.Distance(go.transform.position, collider.transform.position)+". Radius of collider = "+ collider.radius);
+        return (Vector3.Distance(go.transform.position, collider.transform.position) <= (collider.radius));
+    }
+
+    // inventory hotspot behavior
+    private void TakeFromInventoryHotspot(WandController interactor)
+    {
+        EnableToComeFromInventory(inventoryItem);
+        inventoryItem.GetPickedUp(interactor);
+    }
+
+    // inventory hotspot behavior
+    private void ReturnToInventoryHotspot()
+    {
+        inventoryItem.GetDropped(false);    
+        DisableToGoIntoInventory(inventoryItem);
+    }
+
+
+
 
     // DEBUG_scale behavior
     private void StartScaling ()

@@ -6,6 +6,12 @@ using System.Collections.Generic;
 public class MinMaxValues
 {
     public float min = 0f, max = 1f;
+
+    public MinMaxValues (float _min, float _max)
+    {
+        min = _min;
+        max = _max;
+    }
 }
 
 public static class CodeTools  {
@@ -214,6 +220,28 @@ public static class CodeTools  {
     }
 
 
+    // varies the passed-in Vector3 by the passed-in MinMax array
+    // returns false if the input data is invalid
+    public static bool RandomizeVector3WithMinMaxArray(ref Vector3 v3, MinMaxValues[] array)
+    {
+
+        if (array.Length != 3)
+        {
+            Debug.LogError("Size of array must be 3, one element for each of x, y, z.");
+            return false;
+        }
+
+        if (!ValidateMinMaxArray(array))
+            return false;
+
+        v3.x = v3.x + Random.Range(array[0].min, array[0].max);
+        v3.y = v3.y + Random.Range(array[1].min, array[1].max);
+        v3.z = v3.z + Random.Range(array[2].min, array[2].max);
+
+        return true;
+    }
+
+
     // CURRENTLY ONLY SUPPORTS:  
     // Rigidbody on root GO,  MeshCollider on child, MeshRenderer on child
     //
@@ -226,15 +254,10 @@ public static class CodeTools  {
             Debug.LogError("go is null");
             return false;
         }
-        if (go.transform.childCount != 1)
-        {
-            Debug.LogError(go+" childCount is not 1");
-        }
 
         Rigidbody rb = go.GetComponent<Rigidbody>();
-        Transform child = go.transform.GetChild(0);
-        MeshCollider meshCol = child.gameObject.GetComponent<MeshCollider>();
-        MeshRenderer meshRend = child.gameObject.GetComponent<MeshRenderer>();
+        MeshCollider meshCol = go.GetComponentInChildren<MeshCollider>();
+        MeshRenderer meshRend = go.GetComponentInChildren<MeshRenderer>();
 
         if (rb == null)
         {
@@ -243,12 +266,12 @@ public static class CodeTools  {
         }
         if (meshCol == null)
         {
-            Debug.LogError(child.gameObject+" does not have a meshCollider component");
+            Debug.LogError(go+" has no children with a meshCollider component");
             return false;
         }
         if (meshRend == null)
         {
-            Debug.LogError(child.gameObject + " does not have a meshRenderer component");
+            Debug.LogError(go + " has no children with a meshRenderer component");
             return false;
         }
 
@@ -281,9 +304,13 @@ public static class CodeTools  {
                 doesntFit = true;
 
                 Debug.Log(GetNameOfVector3(vector3Directions[i]) +": " + go + " hit " + ray.collider + " of " + ray.collider.gameObject + " at point " + ray.point);
+
                 GameObject newGO = new GameObject();
                 newGO.transform.position = ray.point;
-                newGO.name = go.name + ray.collider.gameObject.name;
+                newGO.name = go.name + GetNameOfVector3(vector3Directions[i]) + ray.collider.gameObject.name;
+
+                newGO.transform.parent = (GameObject.Find("CollisionMarkers") != null) ? GameObject.Find("CollisionMarkers").transform : null;
+
             }
 
             i++;
@@ -314,6 +341,26 @@ public static class CodeTools  {
             return "Down";
 
         return "(" + v3.x + "," + v3.y + "," + v3.z + ")";
+    }
+
+    // returns an instance of the passed-in type T
+    // which is on the passed-in GameObject or its nearest ancestor
+    // or null if no ancestors have an instance of type T
+    // i think this is identical to FindComponentOnParent<> (oops) except that one doesn't return deactivated components
+    public static T GetComponentFromNearestAncestor<T>(GameObject go) where T : MonoBehaviour
+    {
+
+        T toReturn = go.GetComponent<T>();  // will be non-null if the passed-in go has a component of type T
+        Transform currentAncestor = go.transform;
+
+        while ((toReturn == null) && (currentAncestor.parent != null))
+        {
+            currentAncestor = currentAncestor.parent;
+            if (currentAncestor.gameObject != null)
+                toReturn = currentAncestor.gameObject.GetComponent<T>();
+        }
+
+        return toReturn;
     }
 
 }
